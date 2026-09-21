@@ -1,0 +1,20 @@
+# gap_7d.vlog: a closed tab for a week (docs/TESTING.md "7-day gap"). A freshly hatched baby
+# left alone evolves at 1 h and then dies of neglect within the day; a single update seven days
+# later must fast-forward through all of that to the tombstone, and a second update a year
+# after that must be an O(1) no-op on a dead pet (docs/STATE_MODEL.md "Fast-forward").
+
+reset 1700000000000 seed=77
+t 1700000301000 -
+snap hatched
+
+skip 604800000              ; 7 days
+t 1700605101000 -
+snap dead_after_7_days
+
+skip 31536000000            ; 365 days more
+t 1732141101000 -
+snap still_dead_a_year_later
+
+t 1732141101100 A           ; a plain press does nothing on a tombstone
+t 1732141101200 -
+snap buttons_ignored

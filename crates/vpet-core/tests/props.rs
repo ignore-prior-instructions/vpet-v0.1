@@ -18,31 +18,57 @@ fn save_bytes(cart: &Cart) -> Vec<u8> {
     out[0..len].to_vec()
 }
 
+/// A random stretch of life before a property is checked: gaps of up to ~11 h and button
+/// masks each held across a 1.1 s window (long enough for the A+C tombstone restart to
+/// complete), for up to 40 steps (~18 days). Random mashing reaches Baby -> Child at 1 h, the
+/// menu and every action, death by neglect within the day, and restart; the well-cared-for
+/// adult and old age are reached by the goldens and unit tests instead. Returns the `now_ms`
+/// the prefix ended at.
+fn lifecycle_prefix(cart: &mut Cart, start_ms: u64, steps: &[(u32, u8)]) -> u64 {
+    let mut now = start_ms;
+    for &(gap_secs, mask) in steps {
+        now += gap_secs as u64 * 1000;
+        cart.update(now, mask);
+        now += 1100;
+        cart.update(now, mask);
+        now += 100;
+        cart.update(now, 0);
+    }
+    now
+}
+
+fn prefix_steps() -> impl Strategy<Value = Vec<(u32, u8)>> {
+    proptest::collection::vec((60u32..40_000, 0u8..8), 0..40)
+}
+
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(64))]
 
     /// Advancing to `end_ms` in a single `update` must equal advancing through several random
-    /// intermediate `update`s that land on the same `end_ms` (docs/DETERMINISM.md rule 3).
+    /// intermediate `update`s that land on the same `end_ms` (docs/DETERMINISM.md rule 3),
+    /// from any point in a lifecycle.
     #[test]
     fn advance_invariance(
         seed in any::<u64>(),
         start_ms in START_MS_RANGE,
+        steps in prefix_steps(),
         gap_secs in 1u64..400_000,
         mut fracs in proptest::collection::vec(0u64..1000, 0..8),
     ) {
-        let end_ms = start_ms + gap_secs * 1000;
-
         let mut a = Cart::new_uninit();
         a.reset(start_ms, seed);
+        let from_ms = lifecycle_prefix(&mut a, start_ms, &steps);
+        let end_ms = from_ms + gap_secs * 1000;
         a.update(end_ms, 0);
 
         let mut b = Cart::new_uninit();
         b.reset(start_ms, seed);
+        lifecycle_prefix(&mut b, start_ms, &steps);
         fracs.sort_unstable();
         for frac in fracs {
             // Integer interpolation (no floats, matching docs/DETERMINISM.md rule 1 even though
             // this test crate isn't itself subject to vpet-core's `deny(float_arithmetic)`).
-            let mid_ms = start_ms + (end_ms - start_ms) * frac / 1000;
+            let mid_ms = from_ms + (end_ms - from_ms) * frac / 1000;
             b.update(mid_ms, 0);
         }
         b.update(end_ms, 0);
@@ -57,12 +83,14 @@ proptest! {
     fn time_reversal_is_a_noop(
         seed in any::<u64>(),
         start_ms in START_MS_RANGE,
+        steps in prefix_steps(),
         gap_secs in 1u64..400_000,
         back_ms in 1u64..100_000,
     ) {
         let mut cart = Cart::new_uninit();
         cart.reset(start_ms, seed);
-        let reached_ms = start_ms + gap_secs * 1000;
+        let from_ms = lifecycle_prefix(&mut cart, start_ms, &steps);
+        let reached_ms = from_ms + gap_secs * 1000;
         cart.update(reached_ms, 0);
         let before = save_bytes(&cart);
 
@@ -101,12 +129,16 @@ proptest! {
     fn save_load_transparency(
         seed in any::<u64>(),
         start_ms in START_MS_RANGE,
+        steps in prefix_steps(),
         gap_secs in 0u64..400_000,
         further_secs in 1u64..100_000,
+        further_mask in 0u8..8,
     ) {
         let mut original = Cart::new_uninit();
         original.reset(start_ms, seed);
-        original.update(start_ms + gap_secs * 1000, 0);
+        let from_ms = lifecycle_prefix(&mut original, start_ms, &steps);
+        let reached_ms = from_ms + gap_secs * 1000;
+        original.update(reached_ms, 0);
 
         let bytes = save_bytes(&original);
         let mut reloaded = Cart::new_uninit();
@@ -114,10 +146,12 @@ proptest! {
 
         prop_assert_eq!(save_bytes(&original), save_bytes(&reloaded));
 
-        // Behaviour matches going forward from here too.
-        let further_ms = start_ms + gap_secs * 1000 + further_secs * 1000;
-        original.update(further_ms, 0);
-        reloaded.update(further_ms, 0);
+        // Behaviour matches going forward from here too, input included.
+        let further_ms = reached_ms + further_secs * 1000;
+        original.update(further_ms, further_mask);
+        reloaded.update(further_ms, further_mask);
+        original.update(further_ms + 1100, further_mask);
+        reloaded.update(further_ms + 1100, further_mask);
         prop_assert_eq!(save_bytes(&original), save_bytes(&reloaded));
     }
 
