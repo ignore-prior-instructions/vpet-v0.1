@@ -3,6 +3,8 @@ target/
 # Node
 node_modules/
 dist/
+# `just wasm`'s output copy (rebuilt from crates/vpet-abi; see justfile)
+hosts/web/public/*.wasm
 # Python tooling
 .venv/
 __pycache__/

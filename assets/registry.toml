@@ -1,0 +1,5 @@
+# Species registry. Append-only: never renumber or remove an entry, since saves reference a
+# species by id (docs/CONTENT.md). The first species joins in Phase 3 via `spritekit
+# new-species`; Phase 1's placeholder species (id 0, hand-written in
+# crates/vpet-core/src/assets/generated.rs) is not listed here because it has no text-grid
+# assets or slug of its own and is replaced wholesale when Phase 3 lands.

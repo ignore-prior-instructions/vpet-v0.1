@@ -1,0 +1,2 @@
+# sha256 per approved pose, written by `spritekit approve`. CI fails if an approved pose changes
+# without re-approval (docs/art/ART_PIPELINE.md). Empty until the first species exists (Phase 3).
