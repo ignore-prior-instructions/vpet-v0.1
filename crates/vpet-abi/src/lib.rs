@@ -142,19 +142,45 @@ pub extern "C" fn vpet_update(now_ms: u64, buttons: u32) -> u32 {
     out
 }
 
+impl InspectAbi {
+    pub const LEN: usize = 40;
+
+    /// The struct's exact `#[repr(C)]` image with every padding byte zero. Copying the struct's
+    /// memory directly would ship whatever the stack held in the three padding gaps (offsets
+    /// 6..8, 19, 22..24) — harmless to a decoder, but the parity harness compares these bytes
+    /// across hosts, and a host must not see different garbage per platform.
+    pub fn to_bytes(&self) -> [u8; Self::LEN] {
+        let mut b = [0u8; Self::LEN];
+        b[0..4].copy_from_slice(&self.abi_version.to_le_bytes());
+        b[4..6].copy_from_slice(&self.save_version.to_le_bytes());
+        b[8..12].copy_from_slice(&self.content_hash.to_le_bytes());
+        b[12] = self.state;
+        b[13] = self.species;
+        b[14] = self.stage;
+        b[15] = self.hunger;
+        b[16] = self.happiness;
+        b[17] = self.discipline;
+        b[18] = self.health;
+        b[20..22].copy_from_slice(&self.weight.to_le_bytes());
+        b[24..28].copy_from_slice(&self.age_secs.to_le_bytes());
+        b[28] = self.flags;
+        b[29] = self.attention;
+        b[30] = self.poops;
+        b[31] = self.care_mistakes;
+        b[32..36].copy_from_slice(&self.sim_now.to_le_bytes());
+        b[36..40].copy_from_slice(&self.next_event_at.to_le_bytes());
+        b
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn vpet_inspect() -> u32 {
     let insp: InspectAbi = unsafe { (*addr_of!(CART)).inspect() }.into();
-    let bytes: &[u8] = unsafe {
-        core::slice::from_raw_parts(
-            (&insp as *const InspectAbi) as *const u8,
-            core::mem::size_of::<InspectAbi>(),
-        )
-    };
+    let bytes = insp.to_bytes();
     // SAFETY: see sync_frame.
     unsafe {
         let io = &mut *addr_of_mut!(IO);
-        io[0..bytes.len()].copy_from_slice(bytes);
+        io[0..bytes.len()].copy_from_slice(&bytes);
     }
     bytes.len() as u32
 }

@@ -49,9 +49,21 @@ minigame.
 
 ## Cross-host parity
 
-`vpet-cli parity` loads `vpet.wasm` through `wasmtime` and runs every `.vlog` through both the
-native `Cart` and the wasm exports, asserting identical frame bytes after every `t` line and
-identical blobs at the end. Runs in CI.
+`vpet-cli parity` (cargo feature `parity`; `just parity`) loads `vpet.wasm` through the
+`wasmi` interpreter and runs every `.vlog` through both the native `Cart` and the wasm
+exports, asserting identical update flags and frame bytes after every `t` line, identical
+`Inspect` bytes at every `snap`, identical blobs at every `save` and at the end. Runs in CI.
+wasmi rather than wasmtime: a pure-Rust interpreter that builds in seconds and needs no JIT,
+and the module has zero imports so nothing is lost.
+
+## Long goldens: `autoplay`
+
+Scenarios that span days (both evolution branches, a full life to old age) need a caretaker
+that reacts to state: a blind script can't answer a tantrum or know when a poop landed.
+`vpet-cli autoplay --policy caretaker|sloppy|neglect --seed N --out <file>.vlog` plays the
+pet by policy against `inspect()` and writes the input log it produced, snapping at every
+stage change, on death, and at the end. The result is an ordinary `.vlog`; the command line
+that made it is its first comment, so it can be regenerated.
 
 ESP32 parity is manual: `just parity-esp32 <vlog>` streams the log over serial; the firmware
 echoes a hash of each frame; the tool compares against native.

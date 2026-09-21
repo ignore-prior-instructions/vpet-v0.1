@@ -53,6 +53,11 @@ golden:
 bless:
     cargo run -p vpet-cli -- replay --bless tests/golden/*.vlog
 
+# docs/TESTING.md "Cross-host parity": every .vlog through the native Cart and through the
+# shipped vpet.wasm on the wasmi interpreter; flags, frames, blobs and Inspect must match.
+parity: wasm
+    cargo run -p vpet-cli --features parity -- parity --wasm target/dist/vpet.wasm tests/golden/*.vlog
+
 # Typecheck, unit-test (docs/CONTENT.md's grid.ts/grid.py parser-parity test, against
 # tests/fixtures/packed.json -- regenerate with `spritekit dev-fixture` after changing either
 # parser), and production-build the browser host. Needs `just wasm` first so vpet.wasm exists
@@ -65,4 +70,4 @@ web-check: wasm
 web-e2e: web-check
     cd hosts/web && npx playwright install --with-deps chromium && npm run test:e2e
 
-ci: fmt clippy nofloat test size imports golden art-check web-e2e
+ci: fmt clippy nofloat test size imports golden parity art-check web-e2e

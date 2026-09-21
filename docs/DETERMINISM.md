@@ -48,7 +48,7 @@ and why the whole game can be tested with replays.
 | 7 | proptest: poll-rate invariance (same press timestamps at 5 Hz vs 60 Hz give identical blobs) |
 | 8 | `cargo build --target wasm32-unknown-unknown` with `#![no_std]`; size gate 64 KB; proptest: no panics under random input and gaps up to 10 years |
 | 9 | schema snapshot test compares `content_hash` and the blob bytes of a fixed state |
-| all | native-vs-wasmtime parity: every `.vlog` produces identical frames and blobs on both |
+| all | native-vs-wasm parity (`vpet-cli parity`, on the wasmi interpreter): every `.vlog` produces identical flags, frames, `Inspect` and blobs on both |
 
 ## What determinism does not cover
 
