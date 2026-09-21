@@ -841,6 +841,37 @@ mod tests {
     }
 
     #[test]
+    fn idle_pet_animates_at_real_epoch_timestamps() {
+        // docs/art/ANIMATION.md "Idle": idle_a/idle_b toggle every 2 ticks plus a walk, so
+        // frames sampled every 2 ticks (500 ms) must not all be identical. Regression test for
+        // `time::tick` saturating at u32::MAX for any real-world `now_ms` (~1.7e12 ms / 250 >
+        // u32::MAX), which froze every host's animation while small-timestamp tests passed.
+        // `START_MS` is a real 2023 epoch timestamp for exactly that reason.
+        let (mut cart, mut now) = hatched(42);
+        let first = *cart.frame();
+        let mut changes = 0;
+        let mut differs_from_first = false;
+        for _ in 0..12 {
+            now += 500;
+            let flags = cart.update(now, 0);
+            if flags & flags::FRAME_CHANGED != 0 {
+                changes += 1;
+            }
+            if *cart.frame() != first {
+                differs_from_first = true;
+            }
+        }
+        assert!(
+            differs_from_first,
+            "an idle pet never left its first frame in 6 s"
+        );
+        assert!(
+            changes >= 4,
+            "an idle pet changed its frame only {changes} times in 6 s"
+        );
+    }
+
+    #[test]
     fn feed_meal_refused_when_not_hungry_yet() {
         let (mut cart, mut now) = hatched(1);
         open_menu_at(&mut cart, &mut now, generated::icon::FEED as u8);
