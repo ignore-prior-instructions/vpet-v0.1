@@ -74,7 +74,7 @@ The menu closes on its own after 10 s (MenuTimeout).
 | Play | left/right guessing game, 5 rounds; 3+ correct: happiness +20, else +10; weight -1; clears sad | asleep, sick |
 | Clean | poops = 0, clears poop, cancels poop-driven SickOnset | no poop |
 | Medicine | if sick: sick = false, health +20 (cap 100), sick_count +1, clears sick; if not sick: discipline -5 | never |
-| Lights | toggles lights_off; turning lights off during the sleep window starts proper sleep and clears sleepy | never |
+| Lights | toggles lights_off (the whole screen inverts while off, as on the Connection); turning lights off during the sleep window starts proper sleep and clears sleepy | never |
 | Discipline | if tantrum set: discipline +10, clears tantrum; else happiness -5 | asleep |
 | Status | paged read-only screen | never |
 | Battle | see below | Baby, asleep, sick, or within 1 h of the last battle |

@@ -615,6 +615,28 @@ impl Cart {
         let species = self.species_def();
         let stage_set = self.stage_set(species);
 
+        // The player's own UI is never darkened; every scene that shows the pet in its room
+        // is, while the lights are off (docs/art/SCREEN_LAYOUT.md "Lights off while awake").
+        // The Sleeping scene inverts itself, so it is excluded here to avoid a double flip.
+        let room_scene = !matches!(
+            self.ui,
+            Ui::Menu { .. } | Ui::FeedSub { .. } | Ui::Status { .. }
+        );
+        let mut fb = self.render_scene(species, stage_set, tick);
+        if room_scene && self.pet.lights_off && !self.pet.sleeping {
+            fb.invert();
+        }
+        fb
+    }
+
+    fn render_scene(
+        &self,
+        species: &'static SpeciesDef,
+        stage_set: &'static StageSet,
+        tick: u32,
+    ) -> Fb {
+        use render::compose;
+
         match self.ui {
             Ui::Menu { cursor } => compose::render_menu(&generated::ICONS, cursor),
             Ui::FeedSub { snack } => compose::render_feed_sub(snack),
@@ -962,6 +984,14 @@ mod tests {
         press(&mut cart, &mut now, buttons::B);
         assert_eq!(cart.pet.discipline, 0); // saturating_sub from 0 stays 0, but exercised
         assert!(!cart.pet.sick);
+        assert!(matches!(
+            cart.ui,
+            Ui::Busy {
+                kind: BusyKind::Discipline
+            }
+        )); // the penalty is shown, not silent
+        now += 3_000;
+        cart.update(now, 0); // let that animation end before using the menu again
 
         cart.pet.sick = true;
         cart.pet.health = 50;
@@ -970,6 +1000,28 @@ mod tests {
         assert!(!cart.pet.sick);
         assert_eq!(cart.pet.health, 50 + generated::GAME.medicine_health);
         assert_eq!(cart.pet.sick_count, 1);
+    }
+
+    #[test]
+    fn lights_off_while_awake_inverts_the_room_but_not_the_menu() {
+        let (mut cart, mut now) = hatched(13);
+        now += 2_000;
+        cart.update(now, 0);
+        let before = *cart.frame();
+        open_menu_at(&mut cart, &mut now, generated::icon::LIGHTS as u8);
+        press(&mut cart, &mut now, buttons::B); // lights off
+        assert!(cart.pet.lights_off);
+        assert_eq!(cart.ui, Ui::Idle);
+        let after = *cart.frame();
+        // A mostly-dark frame became a mostly-lit one.
+        let lit = |f: &[u8; FRAME_LEN]| f.iter().map(|b| b.count_ones()).sum::<u32>();
+        assert!(lit(&before) < FRAME_LEN as u32 * 4);
+        assert!(lit(&after) > FRAME_LEN as u32 * 4);
+
+        // The menu is drawn normally on top of a dark room.
+        press(&mut cart, &mut now, buttons::A);
+        assert!(matches!(cart.ui, Ui::Menu { .. }));
+        assert!(lit(cart.frame()) < FRAME_LEN as u32 * 4);
     }
 
     #[test]

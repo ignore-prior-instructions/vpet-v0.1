@@ -10,13 +10,15 @@ pub const PET_HOME_X: i8 = 16;
 /// Idle walk range, inclusive (docs/art/SCREEN_LAYOUT.md "Walk ranges and limits").
 pub const WALK_LO: i8 = 2;
 pub const WALK_HI: i8 = 30;
-/// While a poop is on screen the walk stops short of the pile.
-pub const DIRTY_WALK_HI: i8 = 14;
+/// While a poop is on screen the walk stops short of the pile (pet spans x..x+31; the pile's
+/// leftmost pixel is at 44).
+pub const DIRTY_WALK_HI: i8 = 11;
 
 /// The 16x16 HUD slot (skull / `!`): top-right, never covered by the pet.
 pub const HUD: (i32, i32) = (48, 0);
-/// Poop pile: first at the bottom-right corner, later ones drawn over and up-left.
-pub const POOP_PILE: [(i32, i32); 3] = [(48, 16), (50, 14), (52, 12)];
+/// Poop pile: first in the bottom-right corner, later ones drawn over it stepping up and to
+/// the left, all fully on screen (a 16x16 sprite at x = 44 ends at column 59).
+pub const POOP_PILE: [(i32, i32); 3] = [(48, 16), (46, 12), (44, 8)];
 
 /// Eat scene: the food item at the left edge, mouth height.
 pub const FOOD: (i32, i32) = (0, 16);

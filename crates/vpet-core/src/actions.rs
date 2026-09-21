@@ -21,13 +21,15 @@ fn busy_ticks_to_secs(ticks: u32) -> u32 {
     ticks.div_ceil(crate::time::ANIM_HZ)
 }
 
+/// 8 ticks (2 s) of head-shaking with the cross: docs/art/ANIMATION.md's clip table said 4,
+/// which in play was short enough to miss, so a refused action looked like nothing happened.
 fn refuse(cart: &mut Cart) -> Outcome {
     cart.ui = Ui::Busy {
         kind: BusyKind::Refuse,
     };
     cart.timers.set(
         EventKind::UiBusyEnd,
-        cart.sim_now.saturating_add(busy_ticks_to_secs(4)),
+        cart.sim_now.saturating_add(busy_ticks_to_secs(8)),
     );
     Outcome::Refused
 }
@@ -142,7 +144,11 @@ pub fn clean(cart: &mut Cart) -> Outcome {
     Outcome::Applied
 }
 
+/// Never refused. A cure plays the happy Result clip (heart, hop) so it's visibly a cure;
+/// medicine given to a healthy pet plays the sad Discipline shake so the penalty is visible
+/// too -- both reuse existing `BusyKind`s (no persisted-enum change) for pure feedback.
 pub fn medicine(cart: &mut Cart) -> Outcome {
+    let now = cart.sim_now;
     if cart.pet.sick {
         cart.pet.sick = false;
         cart.pet.health = cart
@@ -153,13 +159,23 @@ pub fn medicine(cart: &mut Cart) -> Outcome {
         cart.pet.sick_count = cart.pet.sick_count.saturating_add(1);
         cart.clear_attention(attention::SICK);
         cart.timers.clear(EventKind::SickDamage);
+        cart.ui = Ui::Busy {
+            kind: BusyKind::Result { won: true },
+        };
+        cart.timers.set(EventKind::UiBusyEnd, now.saturating_add(2));
     } else {
         cart.pet.discipline = cart
             .pet
             .discipline
             .saturating_sub(GAME.medicine_discipline_penalty);
+        cart.ui = Ui::Busy {
+            kind: BusyKind::Discipline,
+        };
+        cart.timers.set(
+            EventKind::UiBusyEnd,
+            now.saturating_add(busy_ticks_to_secs(6)),
+        );
     }
-    cart.ui = Ui::Idle;
     Outcome::Applied
 }
 

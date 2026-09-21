@@ -36,8 +36,8 @@ over three bites. Snacks use `snack_a/b/c`.
 
 ## Refuse
 
-Pet at its current x, pose `sad` (or `idle_a` with `shake` if the species has no `sad`),
-`cross` effect at head_right for 4 ticks.
+Pet at home, pose `sad` (or `idle_a` if the species has no `sad`) with `shake`, `cross` effect
+at head_right, for 8 ticks (2 s: long enough to register as "no").
 
 ## Menu
 
@@ -100,6 +100,13 @@ the final 4 ticks. Tombstone at x = 16, static, `cross` at (28, 0); nothing else
 Pet `sleep` pose at x = 16, `zz_a`/`zz_b` alternating every 4 ticks at head_right. With lights
 off the *entire frame is inverted* so the OLED is mostly dark (on an LCD theme this reads as
 "lights out"), and the attention glyph still shows when sleepy is pending.
+
+## Lights off while awake
+
+Every pet scene (Main, Sick, Eating, Refuse, Discipline, Result, Playing, Evolving) is likewise
+inverted while `lights_off` is set, so the Lights action always has a visible effect, as on the
+Connection. The Menu, Feed submenu and Status pages are never inverted (they are the player's
+UI, not the room). Lights come back on automatically at Wake.
 
 ## Walk ranges and limits
 

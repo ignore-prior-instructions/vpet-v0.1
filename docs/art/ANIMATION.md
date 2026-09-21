@@ -58,7 +58,7 @@ rng[0])` at each state change so blinks never consume simulation randomness.
 | Sick | sad (or idle_a) | none, x = 8 | `skull` at corner_tr blinking every 4 ticks | loop |
 | Sleeping | sleep | none, x = 8; `invert` if lights off | `zz_a` / `zz_b` alternate at head_right every 4 ticks | until Wake |
 | Eating | eat / idle_a toggle, 3 bites of 6 ticks | x = 8 | food frame 0, 1, 2 then none at (0, 8) | 18 ticks |
-| Refuse | sad | shake | `cross` at head_right | 4 ticks |
+| Refuse | sad | shake | `cross` at head_right | 8 ticks |
 | Playing | happy / idle_a toggle; flip_h per round | hop on correct | `heart` or `sweat` at head_top | 5 rounds, player-paced, 30 s timeout |
 | Discipline | sad | shake | none | 6 ticks |
 | Evolving | idle_a (old) 8 ticks, idle_a (new) 4 ticks | invert each tick, then shake | `sparkle_a/b` at corners | 12 ticks |
