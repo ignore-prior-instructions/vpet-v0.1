@@ -5,6 +5,8 @@
 
 pub mod generated;
 
+use crate::pet::Stage;
+
 /// A packed 1-bit-per-pixel sprite. Row-major, MSB is the leftmost pixel, row stride
 /// `ceil(w/8)` bytes (docs/art/SPRITE_FORMAT.md "Compiled form").
 #[derive(Debug, Clone, Copy)]
@@ -24,9 +26,8 @@ pub struct Pose {
     pub bbox: (u8, u8, u8, u8),
 }
 
-/// Per-stage tuning that isn't a full pose set. Phase 1 only needs enough of this to hatch a
-/// baby and schedule its first poop; evolution branches, lifespan, and battle stats join this
-/// struct in Phase 3/4 when `spritekit compile` replaces the hand-written `generated.rs`.
+/// Per-stage tuning that isn't a full pose set (`species.toml`'s `[stages.<stage>]` tables;
+/// docs/CONTENT.md). Battle stats join in Phase 6.
 #[derive(Debug, Clone, Copy)]
 pub struct StageRules {
     pub hunger_step_secs: u16,
@@ -34,8 +35,31 @@ pub struct StageRules {
     pub poop_interval_min_secs: u32,
     pub poop_interval_max_secs: u32,
     /// Time in this stage before `Evolve` fires (`Baby`) or before the stage's evolve branches
-    /// are evaluated (`Child`). Unused by `Adult`/`AdultAlt` in Phase 1 (old age is Phase 4).
+    /// are evaluated (`Child`). 0 for the adult stages, which end by `OldAge` instead.
     pub stage_secs: u32,
+    /// `lifespan_secs = [min, max]` for the adult stages (docs/GAME_DESIGN.md "Death": the
+    /// `OldAge` timer is drawn uniformly from this window at adult evolution, then shortened
+    /// by care mistakes). Both 0 for stages that don't die of old age.
+    pub lifespan_min_secs: u32,
+    pub lifespan_max_secs: u32,
+}
+
+/// One `[[stages.child.evolve.branch]]` entry (docs/CONTENT.md, docs/GAME_DESIGN.md
+/// "Evolution"). Branches are evaluated in file order; a branch matches when every condition
+/// it carries holds. Among the first run of matching branches with equal `weight`, the RNG
+/// picks one (no draw when there is only one).
+#[derive(Debug, Clone, Copy)]
+pub struct Branch {
+    /// `Stage::Adult` or `Stage::AdultAlt`.
+    pub to: Stage,
+    /// Species id to jump lineages to (`to_species` in the toml), resolved against
+    /// `registry.toml` by `spritekit compile`; `None` stays in this species.
+    pub to_species: Option<u8>,
+    pub max_care_mistakes: Option<u8>,
+    pub min_discipline: Option<u8>,
+    pub max_weight: Option<u16>,
+    /// RNG priority among simultaneously-matching branches; default 0.
+    pub weight: u8,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -48,6 +72,8 @@ pub struct StageSet {
     pub sad: Option<Pose>,
     pub attack: Option<Pose>,
     pub rules: StageRules,
+    /// Empty for every stage but `child` today (baby evolves unconditionally; adults die).
+    pub evolve: &'static [Branch],
 }
 
 #[derive(Debug, Clone, Copy)]

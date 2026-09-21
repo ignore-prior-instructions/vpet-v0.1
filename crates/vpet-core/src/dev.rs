@@ -174,7 +174,10 @@ fn resolve_stage_set(slug: &str, stage: u8) -> Option<StageSet> {
             poop_interval_min_secs: 0,
             poop_interval_max_secs: 0,
             stage_secs: 0,
+            lifespan_min_secs: 0,
+            lifespan_max_secs: 0,
         },
+        evolve: &[],
     })
 }
 

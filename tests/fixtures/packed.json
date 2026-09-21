@@ -479,6 +479,42 @@
     "mask": null,
     "w": 16
   },
+  "species/lalafu/adult_alt.txt::eat": {
+    "h": 16,
+    "img": "0000300c700e700e7ffe7bde7ffe7ffe7ffe7cfe7ffe7ffe3ffc3ffc1c381c38",
+    "mask": "0000000000000000000004200000000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/adult_alt.txt::happy": {
+    "h": 16,
+    "img": "300c300c300c300c7ffe7bde7ffe7ffe7ffe7ffe7ffe7ffe3ffc3ffc1c381c38",
+    "mask": "0000000000000000000004200000000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/adult_alt.txt::idle_a": {
+    "h": 16,
+    "img": "0000300c700e700e7ffe7bde7ffe7ffe7ffe7ffe7ffe7ffe3ffc3ffc1c381c38",
+    "mask": "0000000000000000000004200000000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/adult_alt.txt::idle_b": {
+    "h": 16,
+    "img": "00000000700e700e7ffe7bde7ffe7ffe7ffe7ffe7ffe7ffe3ffc3ffc1c381c38",
+    "mask": "0000000000000000000004200000000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/adult_alt.txt::sad": {
+    "h": 16,
+    "img": "000000000000700e7ffe7bde7ffe7ffe7ffe7ffe7ffe7ffe3ffc3ffc1c381c38",
+    "mask": "0000000000000000000004200000000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/adult_alt.txt::sleep": {
+    "h": 16,
+    "img": "0000000000000000000000000000000000000ff07ffe7ffe7ffe3ffc0ff00ff0",
+    "mask": null,
+    "w": 16
+  },
   "species/lalafu/baby.txt::eat": {
     "h": 16,
     "img": "00000000000000000000000003c007e00db00ff00e700ff007e007e006600660",

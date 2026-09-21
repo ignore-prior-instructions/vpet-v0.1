@@ -26,7 +26,7 @@ HEADER = """\
 // species.toml under assets/ and run `spritekit compile` again. CI runs `spritekit compile
 // --check` to keep this file honest.
 
-use crate::assets::{{GameRules, Pose, Sprite, SpeciesDef, StageRules, StageSet}};
+use crate::assets::{{Branch, GameRules, Pose, Sprite, SpeciesDef, StageRules, StageSet}};
 
 pub const CONTENT_HASH: u32 = 0x{content_hash:08x};
 """
@@ -97,15 +97,64 @@ def _species_toml(species_dir: Path) -> dict:
 def _stage_rules(stage_toml: dict) -> str:
     lo, hi = stage_toml.get("poop_interval_secs", [7200, 10800])
     stage_secs = stage_toml.get("stage_secs", 0)
+    life_lo, life_hi = stage_toml.get("lifespan_secs", [0, 0])
     return (
         f"StageRules {{ hunger_step_secs: {stage_toml['hunger_step_secs']}, "
         f"happy_step_secs: {stage_toml['happy_step_secs']}, "
         f"poop_interval_min_secs: {lo}, poop_interval_max_secs: {hi}, "
-        f"stage_secs: {stage_secs} }}"
+        f"stage_secs: {stage_secs}, "
+        f"lifespan_min_secs: {life_lo}, lifespan_max_secs: {life_hi} }}"
     )
 
 
-def _compile_stage_set(em: Emitter, gf, stage_toml: dict) -> str:
+_STAGE_VARIANT = {"adult": "Adult", "adult_alt": "AdultAlt"}
+
+
+def _opt(v) -> str:
+    return "None" if v is None else f"Some({v})"
+
+
+def _compile_branches(
+    slug: str, stage_toml: dict, registry_by_slug: dict[str, int], has_adult_alt: bool
+) -> str:
+    """`[[stages.<stage>.evolve.branch]]` -> `&[Branch { .. }, ..]` in file order
+    (docs/CONTENT.md "Branch fields"). Resolves `to_species` slugs to registry ids here, at
+    compile time, so the core never carries strings; refuses a branch that targets this
+    species' `adult_alt` when the species doesn't ship one."""
+    branches = stage_toml.get("evolve", {}).get("branch", [])
+    if not branches:
+        return "&[]"
+    out = []
+    for i, b in enumerate(branches):
+        to = b.get("to")
+        if to not in _STAGE_VARIANT:
+            raise CompileError(f"{slug}: branch {i}: `to` must be 'adult' or 'adult_alt', got {to!r}")
+        to_species = b.get("to_species")
+        if to_species is None:
+            if to == "adult_alt" and not has_adult_alt:
+                raise CompileError(
+                    f"{slug}: branch {i} targets adult_alt but species.toml has [assets] adult_alt = false"
+                )
+            to_species_str = "None"
+        else:
+            if to_species not in registry_by_slug:
+                raise CompileError(
+                    f"{slug}: branch {i}: to_species {to_species!r} is not in registry.toml"
+                )
+            to_species_str = f"Some({registry_by_slug[to_species]})"
+        out.append(
+            "Branch { "
+            f"to: crate::pet::Stage::{_STAGE_VARIANT[to]}, "
+            f"to_species: {to_species_str}, "
+            f"max_care_mistakes: {_opt(b.get('max_care_mistakes'))}, "
+            f"min_discipline: {_opt(b.get('min_discipline'))}, "
+            f"max_weight: {_opt(b.get('max_weight'))}, "
+            f"weight: {b.get('weight', 0)} }}"
+        )
+    return "&[" + ", ".join(out) + "]"
+
+
+def _compile_stage_set(em: Emitter, gf, stage_toml: dict, evolve_str: str = "&[]") -> str:
     by_name = {s.name: s for s in gf.sprites}
 
     def pose(name: str) -> str:
@@ -131,16 +180,21 @@ def _compile_stage_set(em: Emitter, gf, stage_toml: dict) -> str:
         f"    sad: {optional_pose('sad')},\n"
         f"    attack: {optional_pose('attack')},\n"
         f"    rules: {_stage_rules(stage_toml)},\n"
+        f"    evolve: {evolve_str},\n"
         "}"
     )
 
 
-def _compile_species(em: Emitter, assets_root: Path, slug: str) -> str:
+def _compile_species(
+    em: Emitter, assets_root: Path, slug: str, registry_by_slug: dict[str, int]
+) -> str:
     species_dir = assets_root / "species" / slug
     toml = _species_toml(species_dir)
     sp = toml["species"]
     schedule = toml["schedule"]
     assets_cfg = toml.get("assets", {})
+    stages = toml["stages"]
+    has_adult_alt = bool(assets_cfg.get("adult_alt", False))
 
     stage_files = {}
     for stage in ("baby", "child", "adult"):
@@ -148,16 +202,26 @@ def _compile_species(em: Emitter, assets_root: Path, slug: str) -> str:
         stage_files[stage] = parse(str(f), f.read_text(encoding="utf-8"))
 
     adult_alt_str = "None"
-    if assets_cfg.get("adult_alt", False):
+    if has_adult_alt:
         f = species_dir / "adult_alt.txt"
         if not f.is_file():
             raise CompileError(f"{slug}: species.toml declares adult_alt=true but {f} is missing")
+        if "adult_alt" not in stages:
+            raise CompileError(
+                f"{slug}: species.toml declares adult_alt=true but has no [stages.adult_alt] table"
+            )
         gf = parse(str(f), f.read_text(encoding="utf-8"))
-        adult_alt_str = f"Some({_compile_stage_set(em, gf, toml['stages']['adult'])})"
+        # Its own rules, not adult's: the alternate adult is the "bad care" outcome and is
+        # tuned differently on purpose (docs/CONTENT.md's example: hungrier, shorter-lived).
+        adult_alt_str = f"Some({_compile_stage_set(em, gf, stages['adult_alt'])})"
 
     egg_str = "None"
     if assets_cfg.get("egg_override", False):
         raise CompileError(f"{slug}: egg_override=true is not yet implemented by compile.py")
+
+    def stage_set(stage: str) -> str:
+        evolve = _compile_branches(slug, stages[stage], registry_by_slug, has_adult_alt)
+        return _compile_stage_set(em, stage_files[stage], stages[stage], evolve)
 
     return (
         "SpeciesDef {\n"
@@ -167,9 +231,9 @@ def _compile_species(em: Emitter, assets_root: Path, slug: str) -> str:
         f"    hatch_secs: {sp['hatch_secs']},\n"
         f"    schedule: ({schedule['awake_secs']}, {schedule['sleep_secs']}),\n"
         f"    egg: {egg_str},\n"
-        f"    baby: {_compile_stage_set(em, stage_files['baby'], toml['stages']['baby'])},\n"
-        f"    child: {_compile_stage_set(em, stage_files['child'], toml['stages']['child'])},\n"
-        f"    adult: {_compile_stage_set(em, stage_files['adult'], toml['stages']['adult'])},\n"
+        f"    baby: {stage_set('baby')},\n"
+        f"    child: {stage_set('child')},\n"
+        f"    adult: {stage_set('adult')},\n"
         f"    adult_alt: {adult_alt_str},\n"
         "}"
     )
@@ -287,7 +351,10 @@ def compile_source(assets_root: Path, spec: Spec, allow_unapproved: bool = False
     )
     font_count = len(font_gf.sprites)
 
-    species_strs = [_compile_species(em, assets_root, entry["slug"]) for entry in registry]
+    registry_by_slug = {entry["slug"]: int(entry["id"]) for entry in registry}
+    species_strs = [
+        _compile_species(em, assets_root, entry["slug"], registry_by_slug) for entry in registry
+    ]
     species_array = ",\n".join(species_strs)
 
     game_rules_str = _compile_game_rules(spec)
