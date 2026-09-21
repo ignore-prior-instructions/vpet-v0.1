@@ -7,7 +7,17 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <canvas id="screen" width="32" height="16"></canvas>
+    <div id="banner" hidden></div>
+    <div id="bezel">
+      <canvas id="screen" width="32" height="16"></canvas>
+      <div id="attention"></div>
+    </div>
+    <div id="buttons">
+      <button id="btn-a">A</button>
+      <button id="btn-b">B</button>
+      <button id="btn-c">C</button>
+    </div>
+    <div id="devpanel" hidden></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

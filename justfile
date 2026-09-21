@@ -42,4 +42,14 @@ golden:
 bless:
     cargo run -p vpet-cli -- replay --bless tests/golden/*.vlog
 
-ci: fmt clippy nofloat test size imports golden art-check
+# Typecheck and production-build the browser host. Needs `just wasm` first so vpet.wasm exists
+# under hosts/web/public/ (the build copies it into dist/).
+web-check: wasm
+    cd hosts/web && npm ci && npm run typecheck && npm run build
+
+# docs/TESTING.md "Web smoke": load the page, press A/B/C, screenshot the canvas. Runs against
+# the production build web-check just produced.
+web-e2e: web-check
+    cd hosts/web && npx playwright install --with-deps chromium && npm run test:e2e
+
+ci: fmt clippy nofloat test size imports golden art-check web-e2e

@@ -5,6 +5,9 @@ node_modules/
 dist/
 # `just wasm`'s output copy (rebuilt from crates/vpet-abi; see justfile)
 hosts/web/public/*.wasm
+# Playwright output
+hosts/web/test-results/
+hosts/web/playwright-report/
 # Python tooling
 .venv/
 __pycache__/

@@ -164,3 +164,32 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
 fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
+
+/// Pins `InspectAbi`'s exact `#[repr(C)]` byte layout so the TypeScript decoder
+/// (`hosts/web/src/inspect.ts`) can read fixed offsets without a schema on the wire. Any
+/// change here (a reordered/added/removed field, or a size change) must update the TS decoder
+/// in the same commit. A `const` assertion rather than a `#[test]`: `vpet-abi` can only be
+/// linked for `wasm32-unknown-unknown` (see root `Cargo.toml`'s `default-members` comment), so
+/// this is checked on every normal build instead, native or wasm alike.
+const _: () = {
+    use core::mem::{offset_of, size_of};
+    assert!(offset_of!(InspectAbi, abi_version) == 0);
+    assert!(offset_of!(InspectAbi, save_version) == 4);
+    assert!(offset_of!(InspectAbi, content_hash) == 8);
+    assert!(offset_of!(InspectAbi, state) == 12);
+    assert!(offset_of!(InspectAbi, species) == 13);
+    assert!(offset_of!(InspectAbi, stage) == 14);
+    assert!(offset_of!(InspectAbi, hunger) == 15);
+    assert!(offset_of!(InspectAbi, happiness) == 16);
+    assert!(offset_of!(InspectAbi, discipline) == 17);
+    assert!(offset_of!(InspectAbi, health) == 18);
+    assert!(offset_of!(InspectAbi, weight) == 20);
+    assert!(offset_of!(InspectAbi, age_secs) == 24);
+    assert!(offset_of!(InspectAbi, flags) == 28);
+    assert!(offset_of!(InspectAbi, attention) == 29);
+    assert!(offset_of!(InspectAbi, poops) == 30);
+    assert!(offset_of!(InspectAbi, care_mistakes) == 31);
+    assert!(offset_of!(InspectAbi, sim_now) == 32);
+    assert!(offset_of!(InspectAbi, next_event_at) == 36);
+    assert!(size_of::<InspectAbi>() == 40);
+};
