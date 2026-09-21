@@ -1,0 +1,17 @@
+# Rust
+target/
+# Node
+node_modules/
+dist/
+# Python tooling
+.venv/
+__pycache__/
+*.pyc
+# Generated art previews and concept images (large, reproducible)
+assets/**/preview/
+assets/**/concept/
+# Local config
+.env
+.env.*
+# OS
+.DS_Store

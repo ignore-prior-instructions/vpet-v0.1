@@ -1,0 +1,112 @@
+# asset-spec.toml
+# Drives `spritekit new-species` (scaffolding), `gen` (pose order), `validate` (thresholds),
+# and `compile` (completeness + global game constants). See docs/CONTENT.md.
+
+[cells]
+pet    = [16, 16]
+icon   = [8, 8]
+item   = [8, 8]
+effect = [8, 8]
+glyph  = [3, 5]
+screen = [32, 16]
+
+[species.stages]
+required = ["baby", "child", "adult"]
+optional = ["adult_alt"]
+
+[species.poses]
+required    = ["idle_a", "idle_b", "happy", "eat", "sleep"]
+optional    = ["sad", "attack"]
+derive_from = "idle_a"          # generation order anchor and coherence reference
+
+[species.overrides]
+optional = ["egg_a", "egg_b", "food_a", "food_b", "food_c"]
+
+[rules.pet]
+alphabet          = ".#o-"
+ground_row        = 15
+center_tolerance  = 1.0
+density           = [0.45, 0.85]
+max_components    = 3
+min_component_px  = 3
+max_checkerboards = 1
+eyes_required     = ["idle_a", "idle_b"]
+eyes_top_fraction = 0.45
+
+[rules.pet.symmetry]
+idle_a = 0.85
+idle_b = 0.85
+eat    = 0.85
+sleep  = 0.85
+happy  = 0.70
+sad    = 0.70
+
+[rules.pet.coherence]            # pixel diff vs idle_a of the same stage: [min, max]
+idle_b = [4, 24]
+eat    = [1, 20]
+happy  = [4, 40]
+sad    = [4, 40]
+max_eye_drift_px = 1
+
+[rules.pet.bbox.baby]
+w = [6, 10]
+h = [6, 10]
+
+[rules.pet.bbox.child]
+w = [9, 14]
+h = [10, 15]
+
+[rules.pet.bbox.adult]
+w = [11, 16]
+h = [12, 16]
+
+[rules.icon]
+alphabet  = ".#"
+density   = [0.30, 0.70]
+blank_col = 7
+blank_row = 7
+
+[global]
+icons   = ["feed", "lights", "play", "medicine", "clean", "status", "discipline", "battle"]
+items   = ["food_a", "food_b", "food_c", "snack_a", "snack_b", "snack_c", "poop_a", "poop_b"]
+effects = ["heart", "heart_small", "zz_a", "zz_b", "skull", "sweat",
+           "sparkle_a", "sparkle_b", "hit_star", "attention", "note", "cross"]
+egg     = ["egg_a", "egg_b"]
+screens = ["boot", "vs"]
+font    = "font3x5"
+
+[rules.game]                     # global defaults from docs/GAME_DESIGN.md; compiled into GAME
+care_miss_secs                     = 900
+sick_delay_secs                    = [1800, 5400]
+sick_damage_secs                   = 1800
+sick_damage_hp                     = 10
+starve_secs                        = 43200
+lifespan_penalty_per_mistake_secs  = 21600
+lifespan_floor_secs                = 259200
+tantrum_interval_secs              = [14400, 28800]
+battle_cooldown_secs               = 3600
+menu_timeout_secs                  = 10
+hungry_threshold                   = 80
+sad_threshold                      = 20
+full_threshold                     = 10
+overweight_threshold               = 40
+max_poops                          = 3
+poop_sick_after_secs               = 3600
+snacks_before_sick                 = 4
+meal_hunger                        = 30
+meal_weight                        = 2
+snack_happy                        = 10
+snack_weight                       = 3
+play_weight                        = -1
+play_happy_win                     = 20
+play_happy_lose                    = 10
+medicine_health                    = 20
+medicine_discipline_penalty        = 5
+discipline_gain                    = 10
+discipline_wrong_happy_penalty     = 5
+wake_health_bonus                  = 10
+battle_hit_damage                  = 3
+battle_crit_damage                 = 6
+battle_happy_win                   = 10
+battle_happy_lose                  = 10
+battle_lose_sick_pct               = 10
