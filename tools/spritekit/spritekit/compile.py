@@ -345,7 +345,7 @@ def compile_source(assets_root: Path, spec: Spec, allow_unapproved: bool = False
         for n in ("heart_full", "heart_empty")
     )
 
-    font_gf = _load_global(assets_root, "font3x5")
+    font_gf = _load_global(assets_root, "font5x7")
     font_str = ",\n    ".join(
         em.sprite_literal(s, font_gf.cell_w, font_gf.cell_h) for s in font_gf.sprites
     )
@@ -374,7 +374,7 @@ def compile_source(assets_root: Path, spec: Spec, allow_unapproved: bool = False
     out.append(
         "pub mod heart {\n    pub const FULL: usize = 0;\n    pub const EMPTY: usize = 1;\n}\n"
     )
-    out.append(f"\npub static FONT_3X5: [Sprite; {font_count}] = [\n    {font_str},\n];\n")
+    out.append(f"\npub static FONT_5X7: [Sprite; {font_count}] = [\n    {font_str},\n];\n")
     out.append(f"\npub static SPECIES: [SpeciesDef; {len(species_strs)}] = [\n{species_array}\n];\n")
     out.append(f"\npub static GAME: GameRules = {game_rules_str};\n")
 

@@ -1,11 +1,11 @@
-//! Draws 3x5 glyphs from `assets::generated::FONT_3X5`. See docs/art/SPRITE_FORMAT.md's "Font
-//! glyph" row: 3x5, advance 4 (1px gap between glyphs).
+//! Draws 5x7 glyphs from `assets::generated::FONT_5X7`. See docs/art/SPRITE_FORMAT.md's "Font
+//! glyph" row: 5x7, advance 6 (1px gap between glyphs).
 
 use super::fb::Fb;
-use crate::assets::generated::FONT_3X5;
+use crate::assets::generated::FONT_5X7;
 use crate::assets::glyph_index;
 
-const ADVANCE: i32 = 4;
+const ADVANCE: i32 = super::layout::GLYPH_ADVANCE;
 
 /// Draws `text` (ASCII, only characters `glyph_index` knows map to a glyph; anything else is
 /// skipped, still advancing the cursor so alignment isn't thrown off by an unsupported byte).
@@ -13,7 +13,7 @@ pub fn draw_text(fb: &mut Fb, x: i32, y: i32, text: &[u8]) {
     let mut cx = x;
     for &c in text {
         if let Some(i) = glyph_index(c) {
-            fb.blit_or(&FONT_3X5[i as usize], cx, y);
+            fb.blit_or(&FONT_5X7[i as usize], cx, y);
         }
         cx += ADVANCE;
     }
@@ -54,7 +54,7 @@ mod tests {
     #[test]
     fn text_width_matches_advance() {
         assert_eq!(text_width(b""), 0);
-        assert_eq!(text_width(b"A"), 3);
-        assert_eq!(text_width(b"AB"), 7);
+        assert_eq!(text_width(b"A"), ADVANCE - 1);
+        assert_eq!(text_width(b"AB"), 2 * ADVANCE - 1);
     }
 }

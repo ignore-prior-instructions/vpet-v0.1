@@ -69,7 +69,7 @@ def validate(path: Path | None, all_: bool, as_json: bool):
 @click.option("--pose", default=None, help="Render only this pose/sprite name.")
 @click.option("--sheet", is_flag=True, default=False, help="Render every pose side by side.")
 @click.option("--style", type=click.Choice(["oled", "lcd"]), default="oled")
-@click.option("--scale", default=8, show_default=True)
+@click.option("--scale", default=4, show_default=True)
 def render_cmd(path: Path, pose: str | None, sheet: bool, style: str, scale: int):
     """Render PATH to a PNG under its preview/ directory."""
     out = render_file(path, pose=pose, sheet=sheet or pose is None, style=style, scale=scale)

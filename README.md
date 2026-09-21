@@ -5,7 +5,7 @@ simulation core that runs unchanged in a browser, on a sync server, and on an ES
 128x64 OLED**.
 
 The core is a Rust crate compiled to WebAssembly for the web and natively for hardware. It owns
-the whole game: state, time, rules, and the 32x16 one-bit framebuffer. Each platform host is a
+the whole game: state, time, rules, and the 64x32 one-bit framebuffer. Each platform host is a
 thin blitter that passes in time and button state and copies pixels out. A tiny Rust server stores
 the save blob so the same pet follows you between devices.
 

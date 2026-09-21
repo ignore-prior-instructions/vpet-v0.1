@@ -27,7 +27,7 @@ Buttons are any subset of `ABC` or `-`. `snap` names are unique within a file.
 ## Golden replays
 
 `tests/golden/<name>.vlog` + `<name>.expected`. `vpet-cli replay <vlog>` runs the log and at each
-`snap` compares the ASCII frame (32x16 of `#`/`.`) and the `Inspect` fields with the expected
+`snap` compares the ASCII frame (64x32 of `#`/`.`) and the `Inspect` fields with the expected
 file. `vpet-cli replay --bless` regenerates. Review a blessed diff like any code change: the
 ASCII frames are readable in a PR.
 

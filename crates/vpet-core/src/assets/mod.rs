@@ -139,9 +139,9 @@ pub struct GameRules {
     pub battle_lose_sick_pct: u8,
 }
 
-/// Index into `generated::FONT_3X5` for a glyph, or `None` if `c` has no glyph. Order matches
-/// `assets/global/font3x5.txt` exactly (A-Z, 0-9, `! ? - . :`); pure and hand-written rather
-/// than compiled, since it only depends on that fixed order, not on pixel data.
+/// Index into `generated::FONT_5X7` for a glyph, or `None` if `c` has no glyph. Order matches
+/// `assets/global/font5x7.txt` exactly (A-Z, 0-9, `! ? - . :`, space); pure and hand-written
+/// rather than compiled, since it only depends on that fixed order, not on pixel data.
 pub const fn glyph_index(c: u8) -> Option<u8> {
     match c {
         b'A'..=b'Z' => Some(c - b'A'),
@@ -151,6 +151,7 @@ pub const fn glyph_index(c: u8) -> Option<u8> {
         b'-' => Some(38),
         b'.' => Some(39),
         b':' => Some(40),
+        b' ' => Some(41),
         _ => None,
     }
 }

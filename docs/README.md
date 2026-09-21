@@ -24,9 +24,9 @@ Art and rendering:
 | Doc | What it pins down |
 |---|---|
 | [art/SPRITE_FORMAT.md](art/SPRITE_FORMAT.md) | Text-grid grammar, blink mask, cell sizes, bit packing |
-| [art/SCREEN_LAYOUT.md](art/SCREEN_LAYOUT.md) | How the 32x16 screen is composed, scene by scene |
+| [art/SCREEN_LAYOUT.md](art/SCREEN_LAYOUT.md) | How the 64x32 screen is composed, scene by scene |
 | [art/ANIMATION.md](art/ANIMATION.md) | Pose set, procedural motion, clip table, state machine |
-| [art/STYLE_GUIDE.md](art/STYLE_GUIDE.md) | Visual rules for one-bit 16x16 creatures |
+| [art/STYLE_GUIDE.md](art/STYLE_GUIDE.md) | Visual rules for one-bit 32x32 creatures |
 | [art/ART_PIPELINE.md](art/ART_PIPELINE.md) | `spritekit`: generate, validate, render, critique, approve |
 
 Hosts:
@@ -42,7 +42,7 @@ Decisions: [adr/README.md](adr/README.md). Each ADR is one page: context, decisi
 
 ## Conventions used in these docs
 
-- Sizes are `width x height`. The screen is 32x16. Pixel `(x, y)` has origin top-left.
+- Sizes are `width x height`. The screen is 64x32. Pixel `(x, y)` has origin top-left.
 - Time in the core is `Sec = u32` epoch seconds. Hosts pass milliseconds; the core truncates.
 - "Tick" without qualification means an animation tick, 250 ms. The simulation has no tick; it
   is event-stepped.

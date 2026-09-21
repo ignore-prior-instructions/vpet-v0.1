@@ -43,11 +43,12 @@ uint32_t       vpet_inspect(void);
 
 ## Frame format
 
-32x16, one bit per pixel, row-major, 4 bytes per row, **MSB is the leftmost pixel**, 1 = pixel on
-(lit on the OLED, dark on an LCD theme). Pixel `(x, y)` is bit `7 - (x % 8)` of byte
-`y * 4 + x / 8`.
+64x32, one bit per pixel, row-major, 8 bytes per row (256 bytes), **MSB is the leftmost
+pixel**, 1 = pixel on (lit on the OLED, dark on an LCD theme). Pixel `(x, y)` is bit
+`7 - (x % 8)` of byte `y * 8 + x / 8`. (ABI v1 was 32x16 / 64 bytes;
+[ADR 0016](adr/0016-screen-64x32.md).)
 
-Row-major was chosen over SSD1306 page order because every host has to expand to 4x anyway, and
+Row-major was chosen over SSD1306 page order because every host has to expand to 2x anyway, and
 row-major frames are readable in test output.
 
 ## Buttons

@@ -18,7 +18,8 @@ use crate::replay::frame_to_ascii;
 use crate::vlog::{self, Cmd};
 use vpet_core::{Cart, Inspect};
 
-const FRAME_LEN: usize = 64;
+use vpet_core::render::fb::FRAME_LEN;
+
 const INSPECT_LEN: usize = 40;
 
 struct Wasm {

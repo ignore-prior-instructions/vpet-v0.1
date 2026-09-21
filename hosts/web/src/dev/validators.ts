@@ -10,13 +10,13 @@
 // dev-only page, to avoid a new dependency for four numbers).
 import { bbox } from "./grid";
 
-export const GROUND_ROW = 15;
+export const GROUND_ROW = 31;
 export const CENTER_TOLERANCE = 1.0;
 export const DENSITY_RANGE: [number, number] = [0.45, 0.85];
 export const BBOX_RANGE: Record<"baby" | "child" | "adult", { w: [number, number]; h: [number, number] }> = {
-  baby: { w: [6, 10], h: [6, 10] },
-  child: { w: [9, 14], h: [10, 15] },
-  adult: { w: [11, 16], h: [12, 16] },
+  baby: { w: [12, 20], h: [12, 20] },
+  child: { w: [18, 28], h: [20, 30] },
+  adult: { w: [22, 32], h: [24, 32] },
 };
 
 export interface Badge {

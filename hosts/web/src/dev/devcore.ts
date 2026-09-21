@@ -7,7 +7,7 @@
 import { encodeRenderClip, encodeSetGlobal, encodeSetPose, type GlobalOverride, type PoseOverride } from "./wire";
 
 const IO_CAP = 2048;
-const FRAME_LEN = 64;
+const FRAME_LEN = 256;
 
 interface DevExports {
   memory: WebAssembly.Memory;

@@ -10,7 +10,7 @@ async function waitReady(page: Page): Promise<void> {
 async function canvasIsBlank(page: Page): Promise<boolean> {
   return page.evaluate(() => {
     const canvas = document.getElementById("screen") as HTMLCanvasElement;
-    const data = canvas.getContext("2d")!.getImageData(0, 0, 32, 16).data;
+    const data = canvas.getContext("2d")!.getImageData(0, 0, 64, 32).data;
     for (let i = 0; i < data.length; i += 4) {
       if (data[i] !== 0 || data[i + 1] !== 0 || data[i + 2] !== 0) return false;
     }

@@ -1,29 +1,51 @@
 //! Scene composition: turns game state into a frame. See docs/art/SCREEN_LAYOUT.md. Each
 //! function here takes plain parameters (poses, flags, numbers), not `Cart`/`Ui` directly —
-//! `lib.rs`'s `render_frame` extracts what a scene needs and dispatches to it.
+//! `lib.rs`'s `render_frame` extracts what a scene needs and dispatches to it. Every coordinate
+//! comes from `layout.rs`; there are no bare screen numbers in this file.
 
 use super::fb::Fb;
-use super::text::draw_text;
+use super::layout::*;
+use super::text::{draw_text, text_width};
 use crate::anim::{hop_dy, is_blink, shake_dx, toggle, walk_position, AnimState};
 use crate::assets::generated::{effect, heart, item, EFFECTS, HEARTS, ITEMS, TOMBSTONE};
-use crate::assets::{Sprite, StageSet};
+use crate::assets::{Pose, Sprite, StageSet};
 use crate::time::Sec;
 
-/// Fixed HUD slot (docs/art/SCREEN_LAYOUT.md: "(24,0)... never covered by the pet"): skull when
-/// sick, `!` when calling, zz-adjacent glyphs elsewhere. Only one of these is ever active at a
-/// time in Phase 3 (sick takes priority in `render_frame`'s dispatch), so a single slot suffices.
-const HUD_X: i32 = 24;
-const HUD_Y: i32 = 0;
+/// Menu labels in cursor order (docs/art/SCREEN_LAYOUT.md "Menu"; matches
+/// `assets::generated::icon::*`).
+const MENU_LABELS: [&[u8]; 8] = [
+    b"FEED",
+    b"LIGHTS",
+    b"PLAY",
+    b"MEDICINE",
+    b"CLEAN",
+    b"STATUS",
+    b"DISCIPLINE",
+    b"BATTLE",
+];
+
+const HOME: i32 = PET_HOME_X as i32;
 
 fn draw_attention_glyph(fb: &mut Fb, attention: u8, tick: u32) {
     if attention != 0 {
-        fb.blit_or(&EFFECTS[effect::ATTENTION], HUD_X, HUD_Y);
+        fb.blit_or(&EFFECTS[effect::ATTENTION], HUD.0, HUD.1);
         let _ = tick; // static glyph for now; blinking is a Phase 6 polish item
     }
 }
 
-/// Egg scene: `egg_a` at home (8, 0); in the last minute before hatching, alternates with
-/// `egg_b` every 8 ticks; hops in the final second (docs/art/ANIMATION.md "Egg").
+/// Centred text: `x` such that `text` is centred on the screen's width.
+fn centred_x(text: &[u8]) -> i32 {
+    (Fb::W - text_width(text)) / 2
+}
+
+/// The pet's head-right anchor for a pose drawn at `x`: just right of the bbox, at its top.
+fn head_right(pose: &Pose, x: i32) -> (i32, i32) {
+    let (_, y0, x1, _) = pose.bbox;
+    (x + x1 as i32 + 1, y0 as i32)
+}
+
+/// Egg scene: `egg_a` at home; in the last minute before hatching, alternates with `egg_b`
+/// every 8 ticks; hops in the final second (docs/art/ANIMATION.md "Egg").
 pub fn render_egg(
     egg_sprites: &[Sprite; 2],
     remaining_to_hatch: Sec,
@@ -43,7 +65,7 @@ pub fn render_egg(
     } else {
         0
     };
-    fb.blit_or(sprite, 8, dy);
+    fb.blit_or(sprite, HOME, dy);
     fb
 }
 
@@ -55,8 +77,8 @@ pub fn render_main(stage: &StageSet, poops: u8, attention: u8, tick: u32, anim: 
     let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     let use_b = toggle(elapsed, 2);
     let pose = if use_b { &stage.idle_b } else { &stage.idle_a };
-    let (lo, hi) = if poops > 0 { (1, 7) } else { (1, 15) };
-    let x = walk_position(anim.anim_rng, elapsed, lo, hi, 8) as i32;
+    let hi = if poops > 0 { DIRTY_WALK_HI } else { WALK_HI };
+    let x = walk_position(anim.anim_rng, elapsed, WALK_LO, hi, PET_HOME_X) as i32;
     fb.blit_or(&pose.img, x, 0);
     if is_blink(anim.anim_rng, elapsed) {
         if let Some(mask) = &pose.blink {
@@ -69,24 +91,21 @@ pub fn render_main(stage: &StageSet, poops: u8, attention: u8, tick: u32, anim: 
 }
 
 fn draw_poop_pile(fb: &mut Fb, poops: u8) {
-    // docs/art/SCREEN_LAYOUT.md: first at (24,8); second at (25,7) drawn over; third at (26,6).
-    const POSITIONS: [(i32, i32); 3] = [(24, 8), (25, 7), (26, 6)];
     const SPRITES: [usize; 3] = [item::POOP_A, item::POOP_B, item::POOP_A];
-    for i in 0..(poops as usize).min(3) {
-        let (x, y) = POSITIONS[i];
+    for i in 0..(poops as usize).min(POOP_PILE.len()) {
+        let (x, y) = POOP_PILE[i];
         fb.blit_or(&ITEMS[SPRITES[i]], x, y);
     }
 }
 
 /// Sick scene: `sad` (falls back to `idle_a` if the species has no `sad`), static at home,
-/// skull overlay in the HUD slot.
+/// skull overlay in the HUD slot blinking every 4 ticks.
 pub fn render_sick(stage: &StageSet, tick: u32) -> Fb {
     let mut fb = Fb::new();
     let pose = stage.sad.as_ref().unwrap_or(&stage.idle_a);
-    fb.blit_or(&pose.img, 8, 0);
+    fb.blit_or(&pose.img, HOME, 0);
     if tick % 8 < 4 {
-        // "blinking every 4 ticks"
-        fb.blit_or(&EFFECTS[effect::SKULL], HUD_X, HUD_Y);
+        fb.blit_or(&EFFECTS[effect::SKULL], HUD.0, HUD.1);
     }
     fb
 }
@@ -96,17 +115,14 @@ pub fn render_sick(stage: &StageSet, tick: u32) -> Fb {
 /// still shows if `sleepy` is still pending (lights not yet off).
 pub fn render_sleeping(stage: &StageSet, lights_off: bool, attention: u8, tick: u32) -> Fb {
     let mut fb = Fb::new();
-    fb.blit_or(&stage.sleep.img, 8, 0);
+    fb.blit_or(&stage.sleep.img, HOME, 0);
     let zz = if tick % 8 < 4 {
         effect::ZZ_A
     } else {
         effect::ZZ_B
     };
-    let (bx0, by0, bx1, _) = stage.sleep.bbox;
-    let anchor_x = 8 + bx1 as i32 + 1;
-    let anchor_y = 8 + by0 as i32;
-    let _ = bx0;
-    fb.blit_or(&EFFECTS[zz], anchor_x, anchor_y);
+    let (ax, ay) = head_right(&stage.sleep, HOME);
+    fb.blit_or(&EFFECTS[zz], ax, ay);
     draw_attention_glyph(&mut fb, attention, tick);
     if lights_off {
         fb.invert();
@@ -121,7 +137,7 @@ pub fn render_eating(stage: &StageSet, snack: bool, tick: u32, anim: &AnimState)
     let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     let use_eat = toggle(elapsed, 2);
     let pose = if use_eat { &stage.eat } else { &stage.idle_a };
-    fb.blit_or(&pose.img, 8, 0);
+    fb.blit_or(&pose.img, HOME, 0);
     let bite = (elapsed / 6).min(3);
     let food_frames = if snack {
         [item::SNACK_A, item::SNACK_B, item::SNACK_C]
@@ -129,7 +145,7 @@ pub fn render_eating(stage: &StageSet, snack: bool, tick: u32, anim: &AnimState)
         [item::FOOD_A, item::FOOD_B, item::FOOD_C]
     };
     if let Some(&idx) = food_frames.get(bite as usize) {
-        fb.blit_or(&ITEMS[idx], 0, 8);
+        fb.blit_or(&ITEMS[idx], FOOD.0, FOOD.1);
     }
     fb
 }
@@ -139,10 +155,10 @@ pub fn render_refuse(stage: &StageSet, tick: u32, anim: &AnimState) -> Fb {
     let mut fb = Fb::new();
     let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     let pose = stage.sad.as_ref().unwrap_or(&stage.idle_a);
-    let dx = 8 + shake_dx(elapsed);
+    let dx = HOME + shake_dx(elapsed);
     fb.blit_or(&pose.img, dx, 0);
-    let (_, by0, bx1, _) = pose.bbox;
-    fb.blit_or(&EFFECTS[effect::CROSS], dx + bx1 as i32 + 1, by0 as i32);
+    let (cx, cy) = head_right(pose, dx);
+    fb.blit_or(&EFFECTS[effect::CROSS], cx, cy);
     fb
 }
 
@@ -151,8 +167,7 @@ pub fn render_discipline_busy(stage: &StageSet, tick: u32, anim: &AnimState) -> 
     let mut fb = Fb::new();
     let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     let pose = stage.sad.as_ref().unwrap_or(&stage.idle_a);
-    let dx = 8 + shake_dx(elapsed);
-    fb.blit_or(&pose.img, dx, 0);
+    fb.blit_or(&pose.img, HOME + shake_dx(elapsed), 0);
     fb
 }
 
@@ -161,19 +176,18 @@ pub fn render_result(stage: &StageSet, won: bool, tick: u32, anim: &AnimState) -
     let mut fb = Fb::new();
     let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     if won {
-        let dy = hop_dy(elapsed);
-        fb.blit_or(&stage.happy.img, 8, dy);
-        fb.blit_or(&EFFECTS[effect::HEART], 12, 0);
+        fb.blit_or(&stage.happy.img, HOME, hop_dy(elapsed));
+        fb.blit_or(&EFFECTS[effect::HEART], HEAD_EFFECT.0, HEAD_EFFECT.1);
     } else {
         let pose = stage.sad.as_ref().unwrap_or(&stage.idle_a);
-        fb.blit_or(&pose.img, 8, 0);
-        fb.blit_or(&EFFECTS[effect::SWEAT], 12, 0);
+        fb.blit_or(&pose.img, HOME, 0);
+        fb.blit_or(&EFFECTS[effect::SWEAT], HEAD_EFFECT.0, HEAD_EFFECT.1);
     }
     fb
 }
 
-/// Playing scene: pet faces left/right for the current round (`flip_h`), an `L?R` hint on row
-/// 0, five round-dots on row 15, a heart/sweat reaction from the previous round.
+/// Playing scene: pet faces left/right for the current round (`flip_h`), an `L?R` hint at the
+/// top, five round-dots along the bottom filled as rounds resolve.
 pub fn render_playing(stage: &StageSet, seq: u8, round: u8, tick: u32, anim: &AnimState) -> Fb {
     let mut fb = Fb::new();
     let elapsed = tick.wrapping_sub(anim.clip_start_tick);
@@ -185,34 +199,34 @@ pub fn render_playing(stage: &StageSet, seq: u8, round: u8, tick: u32, anim: &An
         &stage.idle_a
     };
     if facing_right {
-        fb.blit_or_flipped(&pose.img, 8, 0);
+        fb.blit_or_flipped(&pose.img, HOME, 0);
     } else {
-        fb.blit_or(&pose.img, 8, 0);
+        fb.blit_or(&pose.img, HOME, 0);
     }
-    draw_text(&mut fb, 12, 0, b"L?R");
-    for i in 0..5u8 {
-        let x = 12 + i as i32 * 2;
-        if i < round {
-            fb.invert_rect(x, 15, 1, 1);
+    draw_text(&mut fb, PLAY_HINT.0, PLAY_HINT.1, b"L?R");
+    for (i, &x) in PLAY_DOT_XS.iter().enumerate() {
+        if (i as u8) < round {
+            fb.invert_rect(x, PLAY_DOT_Y, DOT, DOT);
         }
     }
     fb
 }
 
-/// Feed submenu: `food_a`/`snack_a` large, the selected item's 8x8 block inverted, `MEAL` /
-/// `SNACK` labels in 3x5 underneath.
+/// Feed submenu: `food_a`/`snack_a` large, the selected item's block inverted, `MEAL` /
+/// `SNACK` labels underneath.
 pub fn render_feed_sub(snack: bool) -> Fb {
     let mut fb = Fb::new();
-    fb.blit_or(&ITEMS[item::FOOD_A], 4, 4);
-    fb.blit_or(&ITEMS[item::SNACK_A], 20, 4);
-    let (sel_x, label, other_label) = if snack {
-        (20, &b"SNACK"[..], &b"MEAL"[..])
-    } else {
-        (4, &b"MEAL"[..], &b"SNACK"[..])
-    };
-    fb.invert_rect(sel_x, 4, 8, 8);
-    draw_text(&mut fb, 4, 13, if snack { other_label } else { label });
-    draw_text(&mut fb, 20, 13, if snack { label } else { other_label });
+    fb.blit_or(&ITEMS[item::FOOD_A], FEED_SUB_FOOD.0, FEED_SUB_FOOD.1);
+    fb.blit_or(&ITEMS[item::SNACK_A], FEED_SUB_SNACK.0, FEED_SUB_SNACK.1);
+    let sel = if snack { FEED_SUB_SNACK } else { FEED_SUB_FOOD };
+    fb.invert_rect(sel.0, sel.1, ITEM, ITEM);
+    for (pos, label) in [
+        (FEED_SUB_FOOD, &b"MEAL"[..]),
+        (FEED_SUB_SNACK, &b"SNACK"[..]),
+    ] {
+        let x = pos.0 + (ITEM - text_width(label)) / 2;
+        draw_text(&mut fb, x, FEED_SUB_LABEL_Y, label);
+    }
     fb
 }
 
@@ -229,34 +243,35 @@ pub fn render_status(
     weight: u16,
 ) -> Fb {
     let mut fb = Fb::new();
+    let (lx, ly) = STATUS_LABEL;
     match page {
         0 => {
-            draw_text(&mut fb, 0, 0, b"HUNGER");
+            draw_text(&mut fb, lx, ly, b"HUNGER");
             draw_hearts(&mut fb, 100u8.saturating_sub(hunger)); // inverted: full hearts = well fed
         }
         1 => {
-            draw_text(&mut fb, 0, 0, b"HAPPY");
+            draw_text(&mut fb, lx, ly, b"HAPPY");
             draw_hearts(&mut fb, happiness);
         }
         2 => {
-            draw_text(&mut fb, 0, 0, b"DISCPL");
+            draw_text(&mut fb, lx, ly, b"DISCPL");
             draw_discipline_bar(&mut fb, discipline);
         }
         3 => {
             let mut buf = [0u8; 8];
             let n = write_u32(&mut buf, age_days);
-            draw_text(&mut fb, 0, 0, b"AGE");
-            draw_text(&mut fb, 20, 0, &buf[0..n]);
-            draw_text(&mut fb, 0, 8, b"WT");
+            draw_text(&mut fb, lx, ly, b"AGE");
+            draw_text(&mut fb, STATUS_VALUE_X, ly, &buf[0..n]);
             let mut wbuf = [0u8; 8];
             let wn = write_u32(&mut wbuf, weight as u32);
-            draw_text(&mut fb, 20, 8, &wbuf[0..wn]);
+            draw_text(&mut fb, lx, HEART_Y, b"WT");
+            draw_text(&mut fb, STATUS_VALUE_X, HEART_Y, &wbuf[0..wn]);
         }
         _ => {
-            draw_text(&mut fb, 0, 0, b"HEALTH");
+            draw_text(&mut fb, lx, ly, b"HEALTH");
             draw_hearts(&mut fb, health);
             if sick {
-                fb.blit_or(&EFFECTS[effect::SKULL], 24, 6);
+                fb.blit_or(&EFFECTS[effect::SKULL], STATUS_SKULL.0, STATUS_SKULL.1);
             }
         }
     }
@@ -265,34 +280,34 @@ pub fn render_status(
 }
 
 fn draw_hearts(fb: &mut Fb, value: u8) {
-    // 4 hearts across x = 0, 8, 16, 24; each represents 25 points.
-    for i in 0..4u8 {
+    // Four hearts, each representing 25 points.
+    for (i, &x) in HEART_XS.iter().enumerate() {
         let threshold = (i as u16 + 1) * 25;
         let idx = if (value as u16) >= threshold {
             heart::FULL
         } else {
             heart::EMPTY
         };
-        fb.blit_or(&HEARTS[idx], i as i32 * 8, 6);
+        fb.blit_or(&HEARTS[idx], x, HEART_Y);
     }
 }
 
 fn draw_discipline_bar(fb: &mut Fb, value: u8) {
-    // A 4-segment bar, one segment per 25 points, at row 6..12.
-    for i in 0..4u8 {
+    // A 4-segment bar, one segment per 25 points.
+    for (i, &x) in HEART_XS.iter().enumerate() {
         let threshold = (i as u16 + 1) * 25;
         if (value as u16) >= threshold {
-            fb.invert_rect(i as i32 * 8, 6, 7, 6);
+            fb.invert_rect(x, BAR_Y, BAR_SEG.0, BAR_SEG.1);
         }
     }
 }
 
 fn draw_page_dots(fb: &mut Fb, page: u8) {
-    for i in 0..5u8 {
-        let x = 12 + i as i32 * 2;
-        fb.blit_or(&EFFECTS[effect::NOTE], x, 15); // placeholder dot glyph; a single on-pixel would do too
-        if i == page {
-            fb.invert_rect(x, 15, 1, 1);
+    for (i, &x) in PAGE_DOT_XS.iter().enumerate() {
+        if i as u8 == page {
+            fb.invert_rect(x, PAGE_DOT_Y - DOT, DOT, DOT * 2); // the current page's dot, doubled
+        } else {
+            fb.invert_rect(x, PAGE_DOT_Y, DOT, DOT);
         }
     }
 }
@@ -318,27 +333,27 @@ fn write_u32(buf: &mut [u8; 8], mut n: u32) -> usize {
 }
 
 /// Evolution (docs/art/SCREEN_LAYOUT.md "Evolution", docs/art/ANIMATION.md "Evolving"): the
-/// old stage's `idle_a` at x = 8 with the whole buffer inverted every other tick for 8 ticks
-/// and `sparkle_a`/`sparkle_b` alternating at (0, 0) and (24, 8); then the new stage's `idle_a`
+/// old stage's `idle_a` at home with the whole buffer inverted every other tick for 8 ticks
+/// and `sparkle_a`/`sparkle_b` alternating in opposite corners; then the new stage's `idle_a`
 /// shaking for 4 ticks. 12 ticks total, mirrored by the `UiBusyEnd` timer `enter_stage` sets.
 pub fn render_evolving(old: &StageSet, new: &StageSet, tick: u32, anim: &AnimState) -> Fb {
     let mut fb = Fb::new();
     let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     if elapsed < 8 {
-        fb.blit_or(&old.idle_a.img, 8, 0);
+        fb.blit_or(&old.idle_a.img, HOME, 0);
         let sparkle = if toggle(elapsed, 1) {
             effect::SPARKLE_B
         } else {
             effect::SPARKLE_A
         };
-        fb.blit_or(&EFFECTS[sparkle], 0, 0);
-        fb.blit_or(&EFFECTS[sparkle], 24, 8);
+        for (x, y) in SPARKLES {
+            fb.blit_or(&EFFECTS[sparkle], x, y);
+        }
         if elapsed % 2 == 1 {
             fb.invert();
         }
     } else {
-        let dx = 8 + shake_dx(elapsed - 8);
-        fb.blit_or(&new.idle_a.img, dx, 0);
+        fb.blit_or(&new.idle_a.img, HOME + shake_dx(elapsed - 8), 0);
     }
     fb
 }
@@ -346,87 +361,134 @@ pub fn render_evolving(old: &StageSet, new: &StageSet, tick: u32, anim: &AnimSta
 /// Dead scene: the tombstone, static, a cross overlay.
 pub fn render_dead() -> Fb {
     let mut fb = Fb::new();
-    fb.blit_or(&TOMBSTONE, 8, 0);
-    fb.blit_or(&EFFECTS[effect::CROSS], 12, 0);
+    fb.blit_or(&TOMBSTONE, HOME, 0);
+    fb.blit_or(&EFFECTS[effect::CROSS], HEAD_EFFECT.0, HEAD_EFFECT.1);
     fb
 }
 
-/// Menu scene: the eight icons tile a 4x2 grid of 8x8 cells; the selected one is XOR-inverted
-/// (docs/art/SCREEN_LAYOUT.md "Menu"). `cursor` is `0..8`, matching `assets::icon::*`.
+/// Menu scene, Tamagotchi Connection style (docs/art/SCREEN_LAYOUT.md "Menu"): four icons
+/// along the top edge, four along the bottom, the selected one XOR-inverted in its block, and
+/// its name centred in the band between. `cursor` is `0..8`, matching `assets::icon::*`.
 pub fn render_menu(icons: &[Sprite; 8], cursor: u8) -> Fb {
     let mut fb = Fb::new();
     for (i, icon) in icons.iter().enumerate() {
-        let gx = ((i % 4) * 8) as i32;
-        let gy = ((i / 4) * 8) as i32;
-        fb.blit_or(icon, gx, gy);
+        let (x, y) = MENU_SLOTS[i];
+        fb.blit_or(icon, x, y);
     }
-    let cursor = cursor.min(7) as usize;
-    let cx = ((cursor % 4) * 8) as i32;
-    let cy = ((cursor / 4) * 8) as i32;
-    fb.invert_rect(cx, cy, 8, 8);
+    if let Some(&(x, y)) = MENU_SLOTS.get(cursor as usize) {
+        fb.invert_rect(x, y, MENU_ICON, MENU_ICON);
+    }
+    if let Some(label) = MENU_LABELS.get(cursor as usize) {
+        draw_text(&mut fb, centred_x(label), LABEL_Y, label);
+    }
     fb
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::assets::generated;
+    use crate::assets::generated::{EGG, ICONS, SPECIES};
 
-    #[test]
-    fn menu_inverts_the_selected_cell_only() {
-        let plain = render_menu(&generated::ICONS, 0);
-        let selected = render_menu(&generated::ICONS, 5);
-        assert_ne!(plain.as_bytes(), selected.as_bytes());
+    fn set() -> &'static StageSet {
+        &SPECIES[0].baby
+    }
+
+    fn lit(fb: &Fb) -> usize {
+        fb.as_bytes().iter().map(|b| b.count_ones() as usize).sum()
+    }
+
+    /// Lit pixels inside a rectangle.
+    fn lit_in(fb: &Fb, x0: i32, y0: i32, w: i32, h: i32) -> usize {
+        let mut n = 0;
+        for y in y0..y0 + h {
+            for x in x0..x0 + w {
+                let byte = fb.as_bytes()[(y as usize) * (Fb::W as usize / 8) + (x as usize) / 8];
+                if (byte >> (7 - (x % 8))) & 1 != 0 {
+                    n += 1;
+                }
+            }
+        }
+        n
     }
 
     #[test]
     fn egg_scene_renders_something() {
-        let anim = AnimState::new();
-        let fb = render_egg(&generated::EGG, 200, 0, &anim);
-        assert!(fb.as_bytes().iter().any(|&b| b != 0));
+        let fb = render_egg(&EGG, 200, 0, &AnimState::new());
+        assert!(lit(&fb) > 0);
     }
 
     #[test]
     fn idle_scene_is_deterministic_for_same_tick() {
         let anim = AnimState::new();
-        let species = &generated::SPECIES[0];
-        let a = render_main(&species.baby, 0, 0, 100, &anim);
-        let b = render_main(&species.baby, 0, 0, 100, &anim);
-        assert_eq!(a.as_bytes(), b.as_bytes());
+        let a = render_main(set(), 0, 0, 7, &anim);
+        let b = render_main(set(), 0, 0, 7, &anim);
+        assert_eq!(a, b);
     }
 
     #[test]
     fn dirty_pet_shows_the_poop_pile() {
         let anim = AnimState::new();
-        let species = &generated::SPECIES[0];
-        let clean = render_main(&species.baby, 0, 0, 100, &anim);
-        let dirty = render_main(&species.baby, 2, 0, 100, &anim);
-        assert_ne!(clean.as_bytes(), dirty.as_bytes());
+        let clean = render_main(set(), 0, 0, 0, &anim);
+        let dirty = render_main(set(), 1, 0, 0, &anim);
+        let (px, py) = POOP_PILE[0];
+        assert_eq!(lit_in(&clean, px, py, ITEM, ITEM), 0);
+        assert!(lit_in(&dirty, px, py, ITEM, ITEM) > 0);
     }
 
     #[test]
     fn sleeping_inverts_when_lights_are_off() {
-        let species = &generated::SPECIES[0];
-        let on = render_sleeping(&species.baby, false, 0, 0);
-        let off = render_sleeping(&species.baby, true, 0, 0);
-        // Every byte should be the bitwise complement (the invert happens after everything
-        // else is drawn identically in both calls at tick 0).
-        for (a, b) in on.as_bytes().iter().zip(off.as_bytes().iter()) {
+        let on = render_sleeping(set(), false, 0, 0);
+        let off = render_sleeping(set(), true, 0, 0);
+        for (a, b) in on.as_bytes().iter().zip(off.as_bytes()) {
             assert_eq!(*a, !*b);
         }
     }
 
     #[test]
-    fn dead_scene_renders_the_tombstone() {
-        let fb = render_dead();
-        assert!(fb.as_bytes().iter().any(|&b| b != 0));
+    fn menu_inverts_the_selected_icon_and_names_it() {
+        let a = render_menu(&ICONS, 0);
+        let b = render_menu(&ICONS, 1);
+        assert_ne!(a, b);
+        // The label band holds text for every cursor position.
+        for cursor in 0..8u8 {
+            let fb = render_menu(&ICONS, cursor);
+            assert!(
+                lit_in(&fb, 0, LABEL_Y, Fb::W, GLYPH_H) > 0,
+                "no label at cursor {cursor}"
+            );
+        }
+        // Only the selected slot's block differs between cursor 0 and cursor 1, plus the label.
+        let (x0, y0) = MENU_SLOTS[0];
+        let (x1, y1) = MENU_SLOTS[1];
+        assert_ne!(
+            lit_in(&a, x0, y0, MENU_ICON, MENU_ICON),
+            lit_in(&b, x0, y0, MENU_ICON, MENU_ICON)
+        );
+        assert_ne!(
+            lit_in(&a, x1, y1, MENU_ICON, MENU_ICON),
+            lit_in(&b, x1, y1, MENU_ICON, MENU_ICON)
+        );
+        let (x2, y2) = MENU_SLOTS[2];
+        assert_eq!(
+            lit_in(&a, x2, y2, MENU_ICON, MENU_ICON),
+            lit_in(&b, x2, y2, MENU_ICON, MENU_ICON)
+        );
     }
 
     #[test]
     fn status_pages_differ() {
-        let p0 = render_status(0, 50, 50, 50, 100, false, 1, 10);
-        let p1 = render_status(1, 50, 50, 50, 100, false, 1, 10);
-        assert_ne!(p0.as_bytes(), p1.as_bytes());
+        let pages: [Fb; 5] =
+            core::array::from_fn(|p| render_status(p as u8, 50, 50, 50, 100, false, 3, 25));
+        for i in 0..5 {
+            for j in (i + 1)..5 {
+                assert_ne!(pages[i], pages[j], "pages {i} and {j} identical");
+            }
+        }
+    }
+
+    #[test]
+    fn dead_scene_renders_the_tombstone() {
+        assert!(lit(&render_dead()) > 0);
     }
 
     #[test]
@@ -434,9 +496,9 @@ mod tests {
         let mut buf = [0u8; 8];
         let n = write_u32(&mut buf, 0);
         assert_eq!(&buf[0..n], b"0");
-        let n = write_u32(&mut buf, 42);
-        assert_eq!(&buf[0..n], b"42");
-        let n = write_u32(&mut buf, 12345);
-        assert_eq!(&buf[0..n], b"12345");
+        let n = write_u32(&mut buf, 12);
+        assert_eq!(&buf[0..n], b"12");
+        let n = write_u32(&mut buf, 999);
+        assert_eq!(&buf[0..n], b"999");
     }
 }

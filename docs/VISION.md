@@ -2,7 +2,7 @@
 
 ## What this is
 
-A virtual pet in the Gen-1 lineage: a 32x16 one-bit screen, three buttons, a creature that
+A virtual pet in the Gen-1 lineage: a 64x32 one-bit screen, three buttons, a creature that
 hatches, eats, poops, sleeps, gets sick, evolves based on how well you looked after it, and
 eventually dies. It should feel like the 1997 object, not like a phone game.
 
@@ -55,5 +55,5 @@ timestamp idea come across.
 
 - Multiplayer or pet-to-pet interaction over the network.
 - Accounts, logins, or anyone but the owner playing.
-- Color, sound beyond a beep, or a screen larger than 32x16.
+- Color, sound beyond a beep, or a screen larger than 64x32.
 - Running the core as an interpreter on the device. Native compilation is the same source.

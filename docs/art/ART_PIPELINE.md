@@ -56,7 +56,7 @@ Candidate selection is the cheapest quality lever in the loop.
 Pure functions; thresholds from `asset-spec.toml`. JSON report per pose:
 `{pose, errors[], warnings[], metrics{...}}`, fed back to the generator verbatim.
 
-| Check | Rule (16x16 pet) | Severity |
+| Check | Rule (32x32 pet) | Severity |
 |---|---|---|
 | dims | exactly `w` x `h`, alphabet `.#o-` only, LF, no trailing space | error |
 | ground | `bbox.bottom == 15` | error |
@@ -70,7 +70,7 @@ Pure functions; thresholds from `asset-spec.toml`. JSON report per pose:
 | eyes | idle_a/idle_b: mask non-empty, mask pixels in mirrored pairs, all in the top 45 % of the bbox | error |
 | coherence vs idle_a | idle_b diff in [4, 24]; eat <= 20; happy/sad <= 40; sleep same bottom and height <= idle_a; eye centroid drift <= 1 px (except sleep) | error |
 | progression | adult bbox area > child > baby | warn |
-| icon (8x8) | column 7 and row 7 empty; density [0.30, 0.70] | error |
+| icon (12x12) | column 11 and row 11 empty; density [0.30, 0.70] | error |
 
 ### Preview renderer
 
@@ -79,7 +79,7 @@ pale cyan lit pixels with a faint bloom, because that is the hardware. `--style 
 `--sheet` puts every pose of a stage side by side with names. `--anim --gif` runs the same
 operator tables as the core (an 80-line Python port; the *authoritative* preview is the browser
 `/dev/sprites` page, which runs the real Rust compositor). `--scene` composes the pose into the
-32x16 screen with a bezel so the critic judges at true scale and in context.
+64x32 screen with a bezel so the critic judges at true scale and in context.
 
 ### Critique loop (`gen`)
 
@@ -104,7 +104,7 @@ what it is looking at (8x upscale, OLED look, 1-bit) and asked concrete question
 where the eyes are at a glance; does this read as the same creature as its siblings; is the
 silhouette readable at true scale. Budget: 2 to 5 model calls per pose, 60 to 100 per species.
 
-## Image-model path (concepts; direct quantization for 32x16 screens)
+## Image-model path (concepts; direct quantization for 64x32 screens)
 
 Prompt style: "single creature, full body, front view, centred, flat black silhouette on pure
 white, bold simple shapes, no shading, no gradients, no outline detail, no text, 1024x1024".
@@ -119,7 +119,7 @@ Do not ask for "pixel art": image models fake a grid at the wrong pitch and it a
 4. Resize to fit `--target-bbox` (default 14x14 for adults) preserving aspect, with **box / area
    averaging**. Never nearest (drops thin limbs), never bicubic (rings).
 5. **Threshold, never dither.** Otsu on the tile, clamped to [96, 160]; `--bias` fattens or
-   thins. At 16x16 every dither dot is a stray pixel.
+   thins. At 32x32 every dither dot is a stray pixel.
 6. Cleanup: drop components < 3 px; fill 1 px holes; if symmetry >= 0.7, snap to symmetric
    (`f | mirror(f)`, then re-threshold density). Most of the "blobby" feel disappears here.
 7. Bottom-centre into the cell; emit the grid; run the validator. Eyes: `mark-eyes` proposes

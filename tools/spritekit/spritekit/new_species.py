@@ -53,7 +53,7 @@ adult_alt     = false
 """
 
 STAGE_FILE_TEMPLATE = """\
-@cell 16x16
+@cell 32x32
 @species {slug}
 @stage {stage}
 

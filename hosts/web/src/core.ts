@@ -4,7 +4,7 @@
 
 import { decodeInspect, type Inspect } from "./inspect";
 
-export const ABI_VERSION = 1;
+export const ABI_VERSION = 2; // 64x32 frames (docs/adr/0016-screen-64x32.md)
 
 /** Mirrors `vpet_core::buttons` (crates/vpet-core/src/lib.rs). */
 export const Buttons = {
@@ -36,7 +36,7 @@ export function loadErrorName(code: number): string {
   return entry ? entry[0] : `UNKNOWN(${code})`;
 }
 
-const FRAME_LEN = 64;
+const FRAME_LEN = 256;
 const IO_CAP = 2048;
 
 interface VpetExports {

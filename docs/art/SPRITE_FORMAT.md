@@ -5,18 +5,19 @@ they carry metadata a PNG cannot (blink mask, anchors). PNG is an import path on
 
 ## Cell sizes
 
-The screen is 32x16. Every cell is a multiple of 8 wide so the packed form has no partial bytes.
+The screen is 64x32 ([ADR 0016](../adr/0016-screen-64x32.md)). Packed rows are
+`ceil(w / 8)` bytes; cells that are multiples of 8 wide have no partial bytes.
 
 | Class | Cell | Count | Notes |
 |---|---|---|---|
-| Pet pose | 16x16 | 5 to 7 per stage | bottom-anchored: feet on row 15. Baby art is small inside the cell (bbox 6 to 10 px) |
-| Egg | 16x16 | 2 global (`egg_a` whole, `egg_b` cracked) | species may override |
-| Tombstone | 16x16 | 1 global | |
-| Menu icon | 8x8 | 8 global | art in the inner 7x7; row 7 and column 7 blank so inverted selection shows a border |
-| Item | 8x8 | food x3, snack x3, poop x2 | species may override food |
-| Effect | 8x8 | 12 global | heart, heart_small, zz_a, zz_b, skull, sweat, sparkle_a, sparkle_b, hit_star, attention, note, cross |
-| Font glyph | 3x5, advance 4 | ~40 | A-Z, 0-9, `! ? - . :`; plus heart / empty-heart at 7x7 for status bars. Hand-drawn, not generated |
-| Screen | 32x16 | boot, vs | the one class where image-model quantization is the primary path |
+| Pet pose | 32x32 | 5 to 7 per stage | bottom-anchored: feet on row 31. Baby art is small inside the cell (bbox 12 to 20 px), child 18 to 28, adult 22 to 32 |
+| Egg | 32x32 | 2 global (`egg_a` whole, `egg_b` cracked) | species may override |
+| Tombstone | 32x32 | 1 global | |
+| Menu icon | 12x12 | 8 global | art in the inner 11x11; row 11 and column 11 blank so inverted selection shows a border |
+| Item | 16x16 | food x3, snack x3, poop x2 | species may override food |
+| Effect | 16x16 | 12 global | heart, heart_small, zz_a, zz_b, skull, sweat, sparkle_a, sparkle_b, hit_star, attention, note, cross |
+| Font glyph | 5x7, advance 6 | 42 | A-Z, 0-9, `! ? - . :`, space (`font5x7.txt`); plus heart / empty-heart at 14x14 for status bars (`hearts.txt`). Hand-drawn, not generated |
+| Screen | 64x32 | boot, vs | the one class where image-model quantization is the primary path |
 
 ## Grammar
 
@@ -74,10 +75,12 @@ Row-major, 1 bit per pixel, **MSB is the leftmost pixel**, row stride `ceil(w / 
 
 | Cell | Bytes |
 |---|---|
-| 16x16 | 32 (+32 for the mask if present) |
-| 8x8 | 8 |
-| 3x5 | 5 (one byte per row, 3 bits used) |
-| 32x16 | 64 |
+| 32x32 | 128 (+128 for the mask if present) |
+| 16x16 | 32 |
+| 14x14 | 28 (two bytes per row, 14 bits used) |
+| 12x12 | 24 (two bytes per row, 12 bits used) |
+| 5x7 | 7 (one byte per row, 5 bits used) |
+| 64x32 | 256 |
 
 Worked example, row 3 of the pose above, `...##-####-##...`:
 
@@ -89,7 +92,7 @@ mask    0 0 0 0 0 1 0 0   0 0 1 0 0 0 0 0
 bytes   0x04              0x20
 ```
 
-The framebuffer uses the identical packing at 32 wide, so a blit is: for each of the sprite's
+The framebuffer uses the identical packing at 64 wide, so a blit is: for each of the sprite's
 rows, shift the row's bits by `x` and OR (or XOR, or AND-NOT) them into the target row.
 
 ```rust
@@ -101,7 +104,7 @@ can centre, measure, and check ground contact without scanning at runtime.
 
 ## Import from PNG
 
-`spritekit quantize <png> --cell 16x16 --pose idle_a --out species/x/adult.txt` produces a text
+`spritekit quantize <png> --cell 32x32 --pose idle_a --out species/x/adult.txt` produces a text
 grid from an image ([ART_PIPELINE.md](ART_PIPELINE.md)). `spritekit import-png` does a
 1:1 conversion for a PNG that is already at cell size (black = on). Eye marks are never
 recovered automatically; `spritekit mark-eyes` proposes them.

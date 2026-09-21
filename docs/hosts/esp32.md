@@ -7,7 +7,7 @@ The core compiles natively into the firmware. There is no WebAssembly interprete
 
 - **ESP32-C3** preferred (RISC-V, upstream Rust toolchain, no `espup` Xtensa fork). Classic
   ESP32 (Xtensa) works with `espup`.
-- 128x64 SSD1306 OLED, I2C, 0.96". The 32x16 frame is drawn at 4x, filling it exactly.
+- 128x64 SSD1306 OLED, I2C, 0.96". The 64x32 frame is drawn at 2x, filling it exactly.
 - Three tactile buttons to GPIO with internal pull-ups.
 - Optional: piezo on a PWM pin for the beep; LED for attention.
 
@@ -21,7 +21,7 @@ later optimisation.
 
 ## Display
 
-`ssd1306` crate in buffered graphics mode. On `FRAME_CHANGED`, expand each core bit into a 4x4
+`ssd1306` crate in buffered graphics mode. On `FRAME_CHANGED`, expand each core bit into a 2x2
 block into the 1024-byte page buffer and flush. Frames change at most 4 times a second, so I2C
 bandwidth is irrelevant.
 

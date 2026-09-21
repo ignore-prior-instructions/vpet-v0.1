@@ -1,6 +1,6 @@
 # 0012: 32x16 screen, 16x16 pets, 8x8 icons, 3x5 font
 
-Status: accepted
+Status: superseded by [0016](0016-screen-64x32.md)
 Date: 2026-09-20
 
 ## Context

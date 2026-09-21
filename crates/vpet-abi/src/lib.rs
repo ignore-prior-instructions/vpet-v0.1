@@ -10,13 +10,14 @@
 #![cfg_attr(not(any(test, feature = "dev-overrides")), no_std)]
 
 use core::ptr::{addr_of, addr_of_mut};
+use vpet_core::render::fb::FRAME_LEN;
 use vpet_core::save::LoadError;
 use vpet_core::{Cart, Inspect};
 
 pub const VPET_IO_CAP: usize = 2048;
 
 static mut CART: Cart = Cart::new_uninit();
-static mut FRAME: [u8; 64] = [0u8; 64];
+static mut FRAME: [u8; FRAME_LEN] = [0u8; FRAME_LEN];
 static mut IO: [u8; VPET_IO_CAP] = [0u8; VPET_IO_CAP];
 
 /// Mirrors docs/HOST_ABI.md's `Inspect` table exactly, `#[repr(C)]` so a host can view the IO
@@ -212,15 +213,15 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
 /// - `dev_set_global` payload: `category_len:u8, category, name_len:u8, name, w:u8, h:u8,
 ///   img[ceil(w/8)*h]`.
 /// - `dev_render_clip` payload: `slug_len:u8, slug, stage:u8, activity_len:u8, activity,
-///   tick:u32 (little-endian)`. On success, overwrites `IO[0..64]` with the rendered frame
-///   (docs/HOST_ABI.md "Frame format") and returns `64`; returns `0` (and leaves `IO`
-///   untouched) if the payload itself is malformed.
+///   tick:u32 (little-endian)`. On success, overwrites `IO[0..FRAME_LEN]` with the rendered
+///   frame (docs/HOST_ABI.md "Frame format") and returns `FRAME_LEN` (256); returns `0` (and
+///   leaves `IO` untouched) if the payload itself is malformed.
 #[cfg(feature = "dev-overrides")]
 mod dev_exports {
     use core::ptr::{addr_of, addr_of_mut};
     use core::str;
 
-    use super::{IO, VPET_IO_CAP};
+    use super::{FRAME_LEN, IO, VPET_IO_CAP};
 
     struct Cursor<'a> {
         buf: &'a [u8],
@@ -347,8 +348,8 @@ mod dev_exports {
         vpet_core::dev::clear_all();
     }
 
-    /// Returns `64` (a frame was written to `IO[0..64]`) or `0` (malformed payload; `IO` left
-    /// untouched).
+    /// Returns `FRAME_LEN` (a frame was written to `IO[0..FRAME_LEN]`) or `0` (malformed
+    /// payload; `IO` left untouched).
     #[no_mangle]
     pub extern "C" fn dev_render_clip(len: u32) -> u32 {
         // SAFETY: see dev_set_pose; the read of IO for parsing and the later write of the
@@ -373,9 +374,9 @@ mod dev_exports {
         // SAFETY: see sync_frame in the parent module.
         unsafe {
             let io = &mut *addr_of_mut!(IO);
-            io[0..64].copy_from_slice(frame.as_bytes());
+            io[0..FRAME_LEN].copy_from_slice(frame.as_bytes());
         }
-        64
+        FRAME_LEN as u32
     }
 }
 

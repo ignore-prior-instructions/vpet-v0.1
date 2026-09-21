@@ -3,14 +3,14 @@
 ## The cartridge model
 
 The whole game is one `no_std` Rust crate, `vpet-core`. It owns the simulation, the rules, the
-assets, and the 32x16 framebuffer. It has no dependencies on a clock, a display, storage, or a
+assets, and the 64x32 framebuffer. It has no dependencies on a clock, a display, storage, or a
 network. Think of it as a cartridge: the hosts are consoles.
 
 ```
                  +------------------------------------------------+
                  |                  vpet-core                     |
    now_ms  --->  |  advance_to(now)  -> timers fire, meters move  |
-   buttons --->  |  apply input      -> actions, menu, battle     |  ---> frame[64]   (32x16 bits)
+   buttons --->  |  apply input      -> actions, menu, battle     |  ---> frame[256]  (64x32 bits)
    seed    --->  |  render()         -> compositor, font, HUD     |  ---> flags       (changed/save/beep/attention)
    blob    --->  |  load/save        -> postcard + header + crc   |  ---> blob
                  +------------------------------------------------+
@@ -113,7 +113,7 @@ vpet-v0.1/
     asset-spec.toml         cells, required poses, validator thresholds, global rules
     approved.lock           sha256 per approved sprite
     registry.toml           append-only species id -> slug
-    global/                 icons.txt items.txt effects.txt font3x5.txt egg.txt tombstone.txt screens.txt
+    global/                 icons.txt items.txt effects.txt font5x7.txt hearts.txt egg.txt tombstone.txt screens.txt
     species/<slug>/         species.toml baby.txt child.txt adult.txt [adult_alt.txt] [concept/]
   tools/spritekit/          Python (uv): validate render quantize gen critique approve compile
   tests/golden/             *.vlog input logs + *.expected frame/inspect snapshots
