@@ -40,8 +40,8 @@ sickness, attention calls, care mistakes, sleep schedule; beeps.
 ## Phase 4: lifecycle
 
 Evolution branches, alternate adult, old age, starvation, sickness death, tombstone, A+C restart
-with an RNG-derived seed; all five property tests; a 7-day gap golden; native-vs-wasmtime parity
-in CI.
+with an RNG-derived seed; all five property tests; a 7-day gap golden; native-vs-wasm parity
+(`vpet-cli parity`, on the wasmi interpreter) in CI.
 
 **Done when** a full egg-to-death run is a golden and parity is green.
 

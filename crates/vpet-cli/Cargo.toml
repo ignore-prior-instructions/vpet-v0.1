@@ -11,3 +11,11 @@ path = "src/main.rs"
 vpet-core = { path = "../vpet-core" }
 clap = { version = "4", features = ["derive"] }
 anyhow = "1"
+wasmi = { version = "2.0.0", optional = true }
+
+[features]
+# `vpet-cli parity` (docs/TESTING.md "Cross-host parity"): runs every .vlog through the native
+# Cart and through vpet.wasm on the wasmi interpreter and diffs frames/blobs/inspect. Behind a
+# feature so a plain `cargo test`/`just test` never builds the interpreter; `just parity` (in
+# `just ci`) does.
+parity = ["dep:wasmi"]

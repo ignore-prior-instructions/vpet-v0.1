@@ -37,7 +37,15 @@ poop_interval_secs = [7200, 10800]
 lifespan_secs = [432000, 864000]
 battle = { power = 6, defense = 4, hp = 10, crit_pct = 10 }
 
+# The "bad care" adult (docs/GAME_DESIGN.md "Evolution"): hungrier, poops more, lives less.
+[stages.adult_alt]
+hunger_step_secs = 300
+happy_step_secs = 600
+poop_interval_secs = [5400, 9000]
+lifespan_secs = [345600, 691200]
+battle = { power = 8, defense = 2, hp = 10, crit_pct = 15 }
+
 [assets]
 egg_override  = false        # ships the global egg_a/egg_b poses
 food_override = false
-adult_alt     = false        # Phase 3 scope: no alternate adult yet (docs/ROADMAP.md Phase 4)
+adult_alt     = true         # adult_alt.txt exists

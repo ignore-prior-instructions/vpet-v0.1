@@ -1,0 +1,33 @@
+# restart.vlog: A+C held for 1000 ms on the tombstone starts a new egg (docs/HOST_ABI.md
+# "Buttons", docs/GAME_DESIGN.md "Dead"). The new egg's seed is drawn from the dead pet's RNG
+# stream, so this second egg -- and everything after it -- is as reproducible as the first.
+# Same seed and neglect as neglect_24h.vlog.
+
+reset 1700000000000 seed=9
+t 1700000301000 -
+snap hatched
+
+skip 90000000               ; 25 h of neglect: dead
+t 1700090301000 -
+snap dead
+
+t 1700090301500 AC          ; hold begins
+t 1700090301900 AC          ; 400 ms in: still a tombstone
+snap still_holding
+t 1700090302200 -           ; released early: the hold is abandoned
+snap released_early
+
+t 1700090303000 AC          ; a fresh hold
+t 1700090304000 AC          ; 1000 ms: restart
+snap restarted_egg
+t 1700090304100 AC          ; the buttons are still down; not a new press on the egg
+t 1700090304200 -
+snap egg_after_release
+
+skip 300000
+t 1700090604200 -           ; hatch_secs later: the second pet hatches
+snap second_pet_hatched
+save
+load
+t 1700090605200 -
+snap after_reload

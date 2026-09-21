@@ -7,6 +7,11 @@ import { defineConfig } from "vitest/config";
 const root = import.meta.dirname;
 
 export default defineConfig({
+  // GitHub Pages serves the repo at `/<repo>/`, so the Pages workflow builds with
+  // VITE_BASE=/vpet-v0.1/ (docs/hosts/web.md "Deployment"); dev and local builds stay at `/`.
+  // Code that fetches from `public/` must go through `import.meta.env.BASE_URL` for this to
+  // hold (core.ts's wasm URL does).
+  base: process.env.VITE_BASE ?? "/",
   server: {
     fs: {
       // `/dev/sprites` glob-imports `assets/**/*.txt` as raw text (docs/CONTENT.md), which

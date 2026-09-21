@@ -1,5 +1,8 @@
 //! `vpet-cli`: the test oracle and the fastest way to poke the core. See docs/hosts/cli.md.
 
+mod autoplay;
+#[cfg(feature = "parity")]
+mod parity;
 mod replay;
 mod vlog;
 
@@ -35,6 +38,35 @@ enum Commands {
         #[arg(long, default_value_t = 1)]
         speed: u64,
     },
+    /// Play the pet by policy and write the resulting .vlog (docs/TESTING.md "Golden replays":
+    /// how the long lifecycle goldens are produced). Deterministic per --seed.
+    Autoplay {
+        #[arg(long)]
+        out: PathBuf,
+        #[arg(long, default_value_t = 1)]
+        seed: u64,
+        #[arg(long, default_value_t = 1_700_000_000_000)]
+        start_ms: u64,
+        /// Simulated seconds after --start-ms to stop at (a snap named `end` is taken there).
+        #[arg(long, default_value_t = 86_400)]
+        until_secs: u64,
+        #[arg(long, value_enum, default_value_t = autoplay::Policy::Caretaker)]
+        policy: autoplay::Policy,
+        /// Fixed visit cadence (sloppy/neglect), or the longest gap between visits (caretaker).
+        #[arg(long, default_value_t = 7_200)]
+        every_secs: u64,
+        /// Stop once the pet reaches any adult stage.
+        #[arg(long, default_value_t = false)]
+        stop_at_adult: bool,
+    },
+    /// Run each .vlog natively and through vpet.wasm on wasmi; diff flags, frames, blobs and
+    /// Inspect (docs/TESTING.md "Cross-host parity"). Needs `--features parity`.
+    #[cfg(feature = "parity")]
+    Parity {
+        #[arg(long, default_value = "target/dist/vpet.wasm")]
+        wasm: PathBuf,
+        files: Vec<PathBuf>,
+    },
     /// Print the ABI version this build implements.
     Version,
 }
@@ -49,11 +81,54 @@ fn main() -> Result<()> {
         } => cmd_replay(&files, bless, verbose),
         Commands::Dump { blob } => cmd_dump(&blob),
         Commands::Play { speed } => cmd_play(speed),
+        Commands::Autoplay {
+            out,
+            seed,
+            start_ms,
+            until_secs,
+            policy,
+            every_secs,
+            stop_at_adult,
+        } => autoplay::run(
+            &autoplay::Opts {
+                seed,
+                start_ms,
+                until_secs,
+                policy,
+                every_secs,
+                stop_at_adult,
+            },
+            &out,
+        ),
+        #[cfg(feature = "parity")]
+        Commands::Parity { wasm, files } => cmd_parity(&wasm, &files),
         Commands::Version => {
             println!("vpet-cli, ABI version {}", vpet_core::ABI_VERSION);
             Ok(())
         }
     }
+}
+
+#[cfg(feature = "parity")]
+fn cmd_parity(wasm: &std::path::Path, files: &[PathBuf]) -> Result<()> {
+    if files.is_empty() {
+        anyhow::bail!("parity needs at least one .vlog path");
+    }
+    let mut any_failed = false;
+    for path in files {
+        let r = parity::run_file(wasm, path)?;
+        match r.error {
+            None => println!("ok    {} ({} commands)", r.path, r.steps),
+            Some(msg) => {
+                any_failed = true;
+                println!("FAIL  {} at command {}:\n{}", r.path, r.steps, msg);
+            }
+        }
+    }
+    if any_failed {
+        anyhow::bail!("native and wasm diverged on one or more logs");
+    }
+    Ok(())
 }
 
 fn cmd_replay(files: &[PathBuf], bless: bool, verbose: bool) -> Result<()> {

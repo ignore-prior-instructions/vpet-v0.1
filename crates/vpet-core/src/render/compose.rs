@@ -31,7 +31,7 @@ pub fn render_egg(
     anim: &AnimState,
 ) -> Fb {
     let mut fb = Fb::new();
-    let elapsed = tick.saturating_sub(anim.clip_start_tick);
+    let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     let use_b = remaining_to_hatch <= 60 && toggle(elapsed, 8);
     let sprite = if use_b {
         &egg_sprites[1]
@@ -52,7 +52,7 @@ pub fn render_egg(
 /// attention glyph.
 pub fn render_main(stage: &StageSet, poops: u8, attention: u8, tick: u32, anim: &AnimState) -> Fb {
     let mut fb = Fb::new();
-    let elapsed = tick.saturating_sub(anim.clip_start_tick);
+    let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     let use_b = toggle(elapsed, 2);
     let pose = if use_b { &stage.idle_b } else { &stage.idle_a };
     let (lo, hi) = if poops > 0 { (1, 7) } else { (1, 15) };
@@ -118,7 +118,7 @@ pub fn render_sleeping(stage: &StageSet, lights_off: bool, attention: u8, tick: 
 /// bite), food gone on the last bite.
 pub fn render_eating(stage: &StageSet, snack: bool, tick: u32, anim: &AnimState) -> Fb {
     let mut fb = Fb::new();
-    let elapsed = tick.saturating_sub(anim.clip_start_tick);
+    let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     let use_eat = toggle(elapsed, 2);
     let pose = if use_eat { &stage.eat } else { &stage.idle_a };
     fb.blit_or(&pose.img, 8, 0);
@@ -137,7 +137,7 @@ pub fn render_eating(stage: &StageSet, snack: bool, tick: u32, anim: &AnimState)
 /// Refuse scene: `sad` (or `idle_a` if none) shakes, `cross` at head-right, 4 ticks.
 pub fn render_refuse(stage: &StageSet, tick: u32, anim: &AnimState) -> Fb {
     let mut fb = Fb::new();
-    let elapsed = tick.saturating_sub(anim.clip_start_tick);
+    let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     let pose = stage.sad.as_ref().unwrap_or(&stage.idle_a);
     let dx = 8 + shake_dx(elapsed);
     fb.blit_or(&pose.img, dx, 0);
@@ -149,7 +149,7 @@ pub fn render_refuse(stage: &StageSet, tick: u32, anim: &AnimState) -> Fb {
 /// Discipline's busy animation: `sad` (or `idle_a`) shakes, 6 ticks, no overlay.
 pub fn render_discipline_busy(stage: &StageSet, tick: u32, anim: &AnimState) -> Fb {
     let mut fb = Fb::new();
-    let elapsed = tick.saturating_sub(anim.clip_start_tick);
+    let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     let pose = stage.sad.as_ref().unwrap_or(&stage.idle_a);
     let dx = 8 + shake_dx(elapsed);
     fb.blit_or(&pose.img, dx, 0);
@@ -159,7 +159,7 @@ pub fn render_discipline_busy(stage: &StageSet, tick: u32, anim: &AnimState) -> 
 /// Result scene (end of Play): `happy` (win, hops) or `sad` (lose/draw), heart or sweat.
 pub fn render_result(stage: &StageSet, won: bool, tick: u32, anim: &AnimState) -> Fb {
     let mut fb = Fb::new();
-    let elapsed = tick.saturating_sub(anim.clip_start_tick);
+    let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     if won {
         let dy = hop_dy(elapsed);
         fb.blit_or(&stage.happy.img, 8, dy);
@@ -176,7 +176,7 @@ pub fn render_result(stage: &StageSet, won: bool, tick: u32, anim: &AnimState) -
 /// 0, five round-dots on row 15, a heart/sweat reaction from the previous round.
 pub fn render_playing(stage: &StageSet, seq: u8, round: u8, tick: u32, anim: &AnimState) -> Fb {
     let mut fb = Fb::new();
-    let elapsed = tick.saturating_sub(anim.clip_start_tick);
+    let elapsed = tick.wrapping_sub(anim.clip_start_tick);
     let facing_right = round < 5 && (seq >> round) & 1 != 0;
     let use_happy = toggle(elapsed, 2);
     let pose = if use_happy {
@@ -315,6 +315,32 @@ fn write_u32(buf: &mut [u8; 8], mut n: u32) -> usize {
         buf[j] = tmp[i - 1 - j];
     }
     i
+}
+
+/// Evolution (docs/art/SCREEN_LAYOUT.md "Evolution", docs/art/ANIMATION.md "Evolving"): the
+/// old stage's `idle_a` at x = 8 with the whole buffer inverted every other tick for 8 ticks
+/// and `sparkle_a`/`sparkle_b` alternating at (0, 0) and (24, 8); then the new stage's `idle_a`
+/// shaking for 4 ticks. 12 ticks total, mirrored by the `UiBusyEnd` timer `enter_stage` sets.
+pub fn render_evolving(old: &StageSet, new: &StageSet, tick: u32, anim: &AnimState) -> Fb {
+    let mut fb = Fb::new();
+    let elapsed = tick.wrapping_sub(anim.clip_start_tick);
+    if elapsed < 8 {
+        fb.blit_or(&old.idle_a.img, 8, 0);
+        let sparkle = if toggle(elapsed, 1) {
+            effect::SPARKLE_B
+        } else {
+            effect::SPARKLE_A
+        };
+        fb.blit_or(&EFFECTS[sparkle], 0, 0);
+        fb.blit_or(&EFFECTS[sparkle], 24, 8);
+        if elapsed % 2 == 1 {
+            fb.invert();
+        }
+    } else {
+        let dx = 8 + shake_dx(elapsed - 8);
+        fb.blit_or(&new.idle_a.img, dx, 0);
+    }
+    fb
 }
 
 /// Dead scene: the tombstone, static, a cross overlay.

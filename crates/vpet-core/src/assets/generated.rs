@@ -3,9 +3,9 @@
 // species.toml under assets/ and run `spritekit compile` again. CI runs `spritekit compile
 // --check` to keep this file honest.
 
-use crate::assets::{GameRules, Pose, SpeciesDef, Sprite, StageRules, StageSet};
+use crate::assets::{Branch, GameRules, Pose, SpeciesDef, Sprite, StageRules, StageSet};
 
-pub const CONTENT_HASH: u32 = 0xcf37d533;
+pub const CONTENT_HASH: u32 = 0x95162ef7;
 
 pub static ICONS: [Sprite; 8] = [
     Sprite {
@@ -588,7 +588,10 @@ pub static SPECIES: [SpeciesDef; 1] = [SpeciesDef {
             poop_interval_min_secs: 7200,
             poop_interval_max_secs: 10800,
             stage_secs: 3600,
+            lifespan_min_secs: 0,
+            lifespan_max_secs: 0,
         },
+        evolve: &[],
     },
     child: StageSet {
         idle_a: Pose {
@@ -722,7 +725,27 @@ pub static SPECIES: [SpeciesDef; 1] = [SpeciesDef {
             poop_interval_min_secs: 7200,
             poop_interval_max_secs: 10800,
             stage_secs: 172800,
+            lifespan_min_secs: 0,
+            lifespan_max_secs: 0,
         },
+        evolve: &[
+            Branch {
+                to: crate::pet::Stage::Adult,
+                to_species: None,
+                max_care_mistakes: Some(4),
+                min_discipline: Some(40),
+                max_weight: None,
+                weight: 0,
+            },
+            Branch {
+                to: crate::pet::Stage::AdultAlt,
+                to_species: None,
+                max_care_mistakes: None,
+                min_discipline: None,
+                max_weight: None,
+                weight: 0,
+            },
+        ],
     },
     adult: StageSet {
         idle_a: Pose {
@@ -856,9 +879,148 @@ pub static SPECIES: [SpeciesDef; 1] = [SpeciesDef {
             poop_interval_min_secs: 7200,
             poop_interval_max_secs: 10800,
             stage_secs: 0,
+            lifespan_min_secs: 432000,
+            lifespan_max_secs: 864000,
         },
+        evolve: &[],
     },
-    adult_alt: None,
+    adult_alt: Some(StageSet {
+        idle_a: Pose {
+            img: Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x00, 0x00, 0x30, 0x0C, 0x70, 0x0E, 0x70, 0x0E, 0x7F, 0xFE, 0x7B, 0xDE, 0x7F,
+                    0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x3F, 0xFC,
+                    0x3F, 0xFC, 0x1C, 0x38, 0x1C, 0x38,
+                ],
+            },
+            blink: Some(Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                ],
+            }),
+            mouth: (7, 9),
+            bbox: (1, 1, 14, 15),
+        },
+        idle_b: Pose {
+            img: Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x00, 0x00, 0x00, 0x00, 0x70, 0x0E, 0x70, 0x0E, 0x7F, 0xFE, 0x7B, 0xDE, 0x7F,
+                    0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x3F, 0xFC,
+                    0x3F, 0xFC, 0x1C, 0x38, 0x1C, 0x38,
+                ],
+            },
+            blink: Some(Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                ],
+            }),
+            mouth: (7, 9),
+            bbox: (1, 2, 14, 15),
+        },
+        happy: Pose {
+            img: Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x30, 0x0C, 0x30, 0x0C, 0x30, 0x0C, 0x30, 0x0C, 0x7F, 0xFE, 0x7B, 0xDE, 0x7F,
+                    0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x3F, 0xFC,
+                    0x3F, 0xFC, 0x1C, 0x38, 0x1C, 0x38,
+                ],
+            },
+            blink: Some(Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                ],
+            }),
+            mouth: (1, 9),
+            bbox: (1, 0, 14, 15),
+        },
+        eat: Pose {
+            img: Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x00, 0x00, 0x30, 0x0C, 0x70, 0x0E, 0x70, 0x0E, 0x7F, 0xFE, 0x7B, 0xDE, 0x7F,
+                    0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7C, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x3F, 0xFC,
+                    0x3F, 0xFC, 0x1C, 0x38, 0x1C, 0x38,
+                ],
+            },
+            blink: Some(Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                ],
+            }),
+            mouth: (7, 9),
+            bbox: (1, 1, 14, 15),
+        },
+        sleep: Pose {
+            img: Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0xF0, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE,
+                    0x3F, 0xFC, 0x0F, 0xF0, 0x0F, 0xF0,
+                ],
+            },
+            blink: None,
+            mouth: (1, 13),
+            bbox: (1, 9, 14, 15),
+        },
+        sad: Some(Pose {
+            img: Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70, 0x0E, 0x7F, 0xFE, 0x7B, 0xDE, 0x7F,
+                    0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x7F, 0xFE, 0x3F, 0xFC,
+                    0x3F, 0xFC, 0x1C, 0x38, 0x1C, 0x38,
+                ],
+            },
+            blink: Some(Sprite {
+                w: 16,
+                h: 16,
+                rows: &[
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x20, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                ],
+            }),
+            mouth: (1, 10),
+            bbox: (1, 3, 14, 15),
+        }),
+        attack: None,
+        rules: StageRules {
+            hunger_step_secs: 300,
+            happy_step_secs: 600,
+            poop_interval_min_secs: 5400,
+            poop_interval_max_secs: 9000,
+            stage_secs: 0,
+            lifespan_min_secs: 345600,
+            lifespan_max_secs: 691200,
+        },
+        evolve: &[],
+    }),
 }];
 
 pub static GAME: GameRules = GameRules {
