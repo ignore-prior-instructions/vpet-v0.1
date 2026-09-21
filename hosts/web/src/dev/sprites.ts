@@ -174,7 +174,7 @@ async function main(): Promise<void> {
   let catalog = loadCatalog();
   let core: DevCore;
   try {
-    core = await DevCore.load("/vpet-dev.wasm");
+    core = await DevCore.load(`${import.meta.env.BASE_URL}vpet-dev.wasm`);
   } catch (e) {
     statusEl.textContent = `Failed to load vpet-dev.wasm -- run 'just wasm-dev' first. (${e})`;
     return;

@@ -64,3 +64,10 @@ clip at any tick through the real compositor.
 
 Static. GitHub Pages from `hosts/web/dist` with `base` set for the repo path; the server URL is
 a runtime setting, not a build-time one, so one build serves local-only and synced use.
+
+Live at https://ignore-prior-instructions.github.io/vpet-v0.1/ . `.github/workflows/pages.yml`
+publishes on every push to `main` (and on demand): it builds `vpet.wasm` exactly as `just wasm`
+does, then `npm run build` with `VITE_BASE=/vpet-v0.1/`, which `vite.config.ts` passes to Vite
+as `base`. Anything fetched from `public/` must go through `import.meta.env.BASE_URL` (the wasm
+URLs do), since Vite only rewrites references it can see in HTML and imports. The Pages site is
+configured for workflow deploys (`build_type: workflow`), so no `gh-pages` branch exists.
