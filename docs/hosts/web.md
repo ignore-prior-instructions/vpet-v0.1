@@ -21,7 +21,7 @@ const io    = new Uint8Array(mem.buffer, e.vpet_io_ptr(), 2048);
 
 ## Blitter
 
-A 32x16 canvas with `putImageData` from the 64-byte frame, scaled by CSS
+A 64x32 canvas with `putImageData` from the 256-byte frame, scaled by CSS
 (`width: 512px; image-rendering: pixelated`). Theme colours (OLED cyan-on-black default, LCD
 green as an option) are applied when filling the `ImageData`. Sixty-four bytes in, one
 `putImageData` out; nothing else.

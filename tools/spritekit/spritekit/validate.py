@@ -99,7 +99,7 @@ def icon_errors(rows: list[str], w: int, h: int, spec: Spec) -> tuple[list[str],
     return errors, {"density": density}
 
 
-# --- pet-pose checks (16x16 species poses, and the global egg/tombstone at the same cell) ------
+# --- pet-pose checks (32x32 species poses, and the global egg/tombstone at the same cell) ------
 
 
 def ground_errors(rows: list[str], h: int, bbox: BBox | None, ground_row: int) -> list[str]:
@@ -312,11 +312,9 @@ _GLOBAL_CLASS_BY_STEM = {
     "egg": "pet",
     "tombstone": "pet",
     "screens": "screen",
-    "font3x5": "glyph",
-    # Not in docs/CONTENT.md's file list verbatim: the two 7x7 status-bar hearts are split out
-    # from font3x5.txt into their own file because the text-grid format is one @cell size per
-    # file (docs/art/SPRITE_FORMAT.md), and font3x5.txt's glyphs are 3x5. Functionally the same
-    # asset the docs describe ("heart/empty-heart 7x7"), just its own small file.
+    "font5x7": "glyph",
+    # The two 14x14 status-bar hearts live in their own file because the text-grid format is
+    # one @cell size per file (docs/art/SPRITE_FORMAT.md) and font5x7.txt's glyphs are 5x7.
     "hearts": "effect",
 }
 
@@ -367,7 +365,7 @@ def validate_file(path: Path, spec: Spec) -> list[Report]:
         r.errors.extend(file_errors)
         # Glyphs are exempt from the stray/hole check: a lone dot is a legitimate period or a
         # colon's dot, and a fully-enclosed off-pixel is a legitimate hollow letterform (0, 8,
-        # O, Q, D...) at 3x5 resolution, not a mistake to catch.
+        # O, Q, D...) at 5x7 resolution, not a mistake to catch.
         if cell_class != "glyph":
             r.errors.extend(stray_and_hole_errors(sprite.rows, gf.cell_w, gf.cell_h))
 

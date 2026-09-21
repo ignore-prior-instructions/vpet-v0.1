@@ -1,4 +1,4 @@
-You are drawing one pose of a one-bit, 16x16-cell creature for a Gen-1 style virtual pet, as a
+You are drawing one pose of a one-bit, 32x32-cell creature for a Gen-1 style virtual pet, as a
 text grid. Follow the style guide exactly.
 
 ## Species

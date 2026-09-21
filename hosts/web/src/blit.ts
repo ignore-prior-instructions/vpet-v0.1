@@ -1,10 +1,10 @@
-// The blitter: 64 bytes in, one putImageData out, nothing else (docs/hosts/web.md "Blitter").
-// Frame format: docs/HOST_ABI.md — 32x16, one bit per pixel, row-major, 4 bytes per row, MSB is
-// the leftmost pixel.
+// The blitter: 256 bytes in, one putImageData out, nothing else (docs/hosts/web.md "Blitter").
+// Frame format: docs/HOST_ABI.md — 64x32, one bit per pixel, row-major, 8 bytes per row, MSB is
+// the leftmost pixel (docs/adr/0016-screen-64x32.md).
 
-const WIDTH = 32;
-const HEIGHT = 16;
-const STRIDE = 4; // bytes per row, ceil(32/8)
+const WIDTH = 64;
+const HEIGHT = 32;
+const STRIDE = 8; // bytes per row, ceil(64/8)
 
 export type Theme = "oled" | "lcd";
 

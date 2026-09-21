@@ -40,7 +40,7 @@ All are pure functions of `(tick, rng_state_snapshot, ui, pet)`.
 | `hop` | | dy from `[0, -1, -2, -1]` indexed by `tick % 4` |
 | `shake` | | dx from `[-1, 1, -1, 0]` |
 | `walk` | range, step = 2 | every `step` ticks x += dir; at a bound, or with 15 % chance per step, flip dir or pause 4 to 12 ticks; poses toggle per step |
-| `overlay` | sprite, anchor | OR-blit an 8x8 effect at `head_top`, `head_right`, `corner_tr`, `mouth`, or absolute |
+| `overlay` | sprite, anchor | OR-blit a 16x16 effect at `head_top`, `head_right`, `corner_tr`, `mouth`, or absolute |
 
 Anchors derive from the pose bbox: `head_top` = (bbox centre x - 4, bbox y0 - 8, clamped),
 `head_right` = (bbox x1 + 1, bbox y0), `mouth` = the pose's `@mouth`.
@@ -53,8 +53,8 @@ rng[0])` at each state change so blinks never consume simulation randomness.
 
 | Activity / reaction | Poses | Motion | Overlays | Length |
 |---|---|---|---|---|
-| Idle | idle_a / idle_b toggle | walk [1, 15], blink | `attention` at corner_tr if calling | loop |
-| Dirty | as Idle | walk [1, 7] | poop pile; `attention` | loop |
+| Idle | idle_a / idle_b toggle | walk [2, 30], blink | `attention` at corner_tr if calling | loop |
+| Dirty | as Idle | walk [2, 14] | poop pile; `attention` | loop |
 | Sick | sad (or idle_a) | none, x = 8 | `skull` at corner_tr blinking every 4 ticks | loop |
 | Sleeping | sleep | none, x = 8; `invert` if lights off | `zz_a` / `zz_b` alternate at head_right every 4 ticks | until Wake |
 | Eating | eat / idle_a toggle, 3 bites of 6 ticks | x = 8 | food frame 0, 1, 2 then none at (0, 8) | 18 ticks |

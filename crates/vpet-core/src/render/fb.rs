@@ -1,25 +1,30 @@
-//! The 64-byte framebuffer and its blit operations. See docs/HOST_ABI.md "Frame format":
-//! 32x16, one bit per pixel, row-major, 4 bytes per row, MSB is the leftmost pixel.
+//! The 256-byte framebuffer and its blit operations. See docs/HOST_ABI.md "Frame format":
+//! 64x32, one bit per pixel, row-major, 8 bytes per row, MSB is the leftmost pixel
+//! (docs/adr/0016-screen-64x32.md).
 
 use crate::assets::Sprite;
 
+/// Bytes per frame: `W / 8 * H`. The one number every host's blitter and the ABI's `FRAME`
+/// buffer must agree on.
+pub const FRAME_LEN: usize = 256;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Fb(pub [u8; 64]);
+pub struct Fb(pub [u8; FRAME_LEN]);
 
 impl Fb {
-    pub const W: i32 = 32;
-    pub const H: i32 = 16;
-    const STRIDE: usize = 4;
+    pub const W: i32 = 64;
+    pub const H: i32 = 32;
+    const STRIDE: usize = 8;
 
     pub const fn new() -> Self {
-        Fb([0u8; 64])
+        Fb([0u8; FRAME_LEN])
     }
 
     pub fn clear(&mut self) {
-        self.0 = [0u8; 64];
+        self.0 = [0u8; FRAME_LEN];
     }
 
-    pub const fn as_bytes(&self) -> &[u8; 64] {
+    pub const fn as_bytes(&self) -> &[u8; FRAME_LEN] {
         &self.0
     }
 
@@ -172,8 +177,8 @@ mod tests {
     #[test]
     fn blit_clips_right_edge() {
         let mut fb = Fb::new();
-        fb.blit_or(&sprite2x2_full(), 31, 0); // only the leftmost column (x=31) is in range
-        assert!(fb.get(31, 0));
+        fb.blit_or(&sprite2x2_full(), Fb::W - 1, 0); // only the leftmost column is in range
+        assert!(fb.get(Fb::W - 1, 0));
     }
 
     #[test]

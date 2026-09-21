@@ -7,25 +7,18 @@ from spritekit import spec as spec_mod
 from spritekit.gen import GenError, _extract_pose_block, _parse_critique, gen_pose
 from spritekit.model_client import AnthropicClient, MissingApiKeyError, require_api_key
 
-GOOD_POSE = (
-    "@pose idle_a\n"
-    "................\n"
-    "......####......\n"
-    ".....######.....\n"
-    "....########....\n"
-    "...##########...\n"
-    "...##-####-##...\n"
-    "..############..\n"
-    "..############..\n"
-    "..############..\n"
-    "..############..\n"
-    "..############..\n"
-    "...##########...\n"
-    "...##########...\n"
-    "....########....\n"
-    "....########....\n"
-    "....########....\n"
-)
+def _good_pose() -> str:
+    """A pose that passes the real validator at the real cell size: lalafu's approved adult
+    idle_a, read from assets/ so this fixture can never drift from asset-spec.toml's cells."""
+    from spritekit.grid import parse
+
+    path = Path(__file__).resolve().parents[3] / "assets" / "species" / "lalafu" / "adult.txt"
+    gf = parse(str(path), path.read_text(encoding="utf-8"))
+    idle_a = next(s for s in gf.sprites if s.name == "idle_a")
+    return "@pose idle_a\n" + "".join(row + "\n" for row in idle_a.rows)
+
+
+GOOD_POSE = _good_pose()
 
 
 class FakeClient:

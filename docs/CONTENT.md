@@ -11,14 +11,15 @@ assets/
   approved.lock            sha256 per approved pose; CI fails if an approved pose changes
   registry.toml            append-only species id -> slug
   global/
-    icons.txt              8 menu icons, 8x8
-    items.txt              food_a/b/c, snack_a/b/c, poop_a/b, 8x8
+    icons.txt              8 menu icons, 12x12
+    items.txt              food_a/b/c, snack_a/b/c, poop_a/b, 16x16
     effects.txt            heart, heart_small, zz_a, zz_b, skull, sweat, sparkle_a, sparkle_b,
-                           hit_star, attention, note, cross, 8x8
-    font3x5.txt            A-Z 0-9 ! ? - . : and heart/empty-heart 7x7
-    egg.txt                egg_a, egg_b, 16x16
-    tombstone.txt          16x16
-    screens.txt            boot, vs, 32x16
+                           hit_star, attention, note, cross, 16x16
+    font5x7.txt            A-Z 0-9 ! ? - . : space, 5x7 (advance 6)
+    hearts.txt             heart_full, heart_empty, 14x14 (status pages)
+    egg.txt                egg_a, egg_b, 32x32
+    tombstone.txt          32x32
+    screens.txt            boot, vs, 64x32
   species/
     lalafu/
       species.toml
@@ -122,7 +123,8 @@ pub static SPECIES: &[SpeciesDef] = &[ ... ];
 pub static ICONS: [Sprite; 8] = [ ... ];
 pub static ITEMS: [Sprite; 8] = [ ... ];
 pub static EFFECTS: [Sprite; 12] = [ ... ];
-pub static FONT_3X5: [Sprite; 41] = [ ... ];
+pub static FONT_5X7: [Sprite; 42] = [ ... ];
+pub static HEARTS: [Sprite; 2] = [ ... ];
 pub static EGG: [Sprite; 2] = [ ... ];
 pub static TOMBSTONE: Sprite = ...;
 pub static SCREENS: [Sprite; 2] = [ ... ];

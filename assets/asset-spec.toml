@@ -2,13 +2,15 @@
 # Drives `spritekit new-species` (scaffolding), `gen` (pose order), `validate` (thresholds),
 # and `compile` (completeness + global game constants). See docs/CONTENT.md.
 
+# docs/adr/0016-screen-64x32.md: the screen is 64x32; pets 32x32, icons 12x12 (inside 11x11),
+# items/effects 16x16, glyphs 5x7 (advance 6), status hearts 14x14 (hearts.txt).
 [cells]
-pet    = [16, 16]
-icon   = [8, 8]
-item   = [8, 8]
-effect = [8, 8]
-glyph  = [3, 5]
-screen = [32, 16]
+pet    = [32, 32]
+icon   = [12, 12]
+item   = [16, 16]
+effect = [16, 16]
+glyph  = [5, 7]
+screen = [64, 32]
 
 [species.stages]
 required = ["baby", "child", "adult"]
@@ -24,12 +26,12 @@ optional = ["egg_a", "egg_b", "food_a", "food_b", "food_c"]
 
 [rules.pet]
 alphabet          = ".#o-"
-ground_row        = 15
+ground_row        = 31
 center_tolerance  = 1.0
 density           = [0.45, 0.85]
 max_components    = 3
-min_component_px  = 3
-max_checkerboards = 1
+min_component_px  = 6
+max_checkerboards = 2
 eyes_required     = ["idle_a", "idle_b"]
 eyes_top_fraction = 0.45
 
@@ -42,29 +44,29 @@ happy  = 0.70
 sad    = 0.70
 
 [rules.pet.coherence]            # pixel diff vs idle_a of the same stage: [min, max]
-idle_b = [4, 24]
-eat    = [1, 20]
-happy  = [4, 40]
-sad    = [4, 40]
-max_eye_drift_px = 1
+idle_b = [16, 96]
+eat    = [4, 80]
+happy  = [16, 160]
+sad    = [16, 160]
+max_eye_drift_px = 2
 
 [rules.pet.bbox.baby]
-w = [6, 10]
-h = [6, 10]
+w = [12, 20]
+h = [12, 20]
 
 [rules.pet.bbox.child]
-w = [9, 14]
-h = [10, 15]
+w = [18, 28]
+h = [20, 30]
 
 [rules.pet.bbox.adult]
-w = [11, 16]
-h = [12, 16]
+w = [22, 32]
+h = [24, 32]
 
 [rules.icon]
 alphabet  = ".#"
 density   = [0.30, 0.70]
-blank_col = 7
-blank_row = 7
+blank_col = 11
+blank_row = 11
 
 [global]
 icons   = ["feed", "lights", "play", "medicine", "clean", "status", "discipline", "battle"]
@@ -73,7 +75,7 @@ effects = ["heart", "heart_small", "zz_a", "zz_b", "skull", "sweat",
            "sparkle_a", "sparkle_b", "hit_star", "attention", "note", "cross"]
 egg     = ["egg_a", "egg_b"]
 screens = ["boot", "vs"]
-font    = "font3x5"
+font    = "font5x7"
 
 [rules.game]                     # global defaults from docs/GAME_DESIGN.md; compiled into GAME
 care_miss_secs                     = 900

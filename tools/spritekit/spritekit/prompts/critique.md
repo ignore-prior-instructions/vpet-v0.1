@@ -1,4 +1,4 @@
-You are critiquing one pose of a one-bit, 16x16-cell creature, shown to you as an 8x upscaled
+You are critiquing one pose of a one-bit, 32x32-cell creature, shown to you as a 4x upscaled
 image ("OLED look": pale cyan pixels on black, 1px gaps between pixels, so each drawn pixel
 reads as one on/off cell). You did not draw this and have not seen any reasoning about it —
 only the image, the raw text grid, the validator's metrics, and the species brief below.

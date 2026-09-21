@@ -221,6 +221,6 @@ fn cmd_play(speed: u64) -> Result<()> {
     Ok(())
 }
 
-fn print_frame(frame: &[u8; 64]) {
+fn print_frame(frame: &[u8; vpet_core::render::fb::FRAME_LEN]) {
     println!("{}", replay::frame_to_ascii(frame));
 }

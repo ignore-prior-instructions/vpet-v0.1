@@ -5,15 +5,20 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::{bail, Context, Result};
+use vpet_core::render::fb::FRAME_LEN;
+use vpet_core::render::Fb;
 use vpet_core::{Cart, Inspect};
 
 use crate::vlog::{self, Cmd};
 
-pub fn frame_to_ascii(frame: &[u8; 64]) -> String {
-    let mut s = String::with_capacity(16 * 33);
-    for y in 0..16usize {
-        for x in 0..32usize {
-            let byte = frame[y * 4 + x / 8];
+pub fn frame_to_ascii(frame: &[u8; FRAME_LEN]) -> String {
+    let w = Fb::W as usize;
+    let h = Fb::H as usize;
+    let stride = w / 8;
+    let mut s = String::with_capacity(h * (w + 1));
+    for y in 0..h {
+        for x in 0..w {
+            let byte = frame[y * stride + x / 8];
             let bit = 7 - (x % 8);
             let on = (byte >> bit) & 1 != 0;
             s.push(if on { '#' } else { '.' });

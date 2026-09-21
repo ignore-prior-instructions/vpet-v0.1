@@ -1,5 +1,5 @@
 //! vpet-core: the cartridge. Owns the simulation, the rules, the compiled-in assets, and the
-//! 32x16 one-bit framebuffer. No allocator, no clock, no I/O — see docs/ARCHITECTURE.md and
+//! 64x32 one-bit framebuffer. No allocator, no clock, no I/O — see docs/ARCHITECTURE.md and
 //! docs/DETERMINISM.md. `std` is enabled only under `cfg(test)` (property tests need it) and
 //! will later be enabled under the `dev-overrides` feature (docs/CONTENT.md "Hot preview").
 #![cfg_attr(not(any(test, feature = "dev-overrides")), no_std)]
@@ -24,6 +24,7 @@ use anim::{AnimState, ClipId};
 use assets::{generated, SpeciesDef, StageRules, StageSet};
 use meter::Meter;
 use pet::{Pet, Stage};
+use render::fb::FRAME_LEN;
 use render::Fb;
 use rng::Rng;
 use save::v1::SaveV1;
@@ -33,8 +34,9 @@ use timers::{EventKind, Timers};
 use ui::{BusyKind, Ui};
 
 /// Bumps on any change to exports, buffer sizes, frame format, flag bits, error codes, or
-/// `Inspect` (docs/HOST_ABI.md "Versioning").
-pub const ABI_VERSION: u32 = 1;
+/// `Inspect` (docs/HOST_ABI.md "Versioning"). 2: the frame became 64x32 / 256 bytes
+/// (docs/adr/0016-screen-64x32.md).
+pub const ABI_VERSION: u32 = 2;
 
 pub mod buttons {
     pub const A: u8 = 1 << 0;
@@ -104,7 +106,7 @@ pub struct Cart {
     // Not persisted (docs/STATE_MODEL.md).
     prev_buttons: u8,
     anim: AnimState,
-    prev_frame: [u8; 64],
+    prev_frame: [u8; FRAME_LEN],
     /// `flags::*` bits raised by actions/events since the last `update` returned
     /// (`BEEP`, `SAVE_NEEDED`); drained into that update's return value.
     pending_flags: u32,
@@ -148,7 +150,7 @@ impl Cart {
             attention_since: [NEVER; 6],
             prev_buttons: 0,
             anim: AnimState::new(),
-            prev_frame: [0u8; 64],
+            prev_frame: [0u8; FRAME_LEN],
             pending_flags: 0,
             hold_since_ms: None,
         }
@@ -247,7 +249,7 @@ impl Cart {
         }
     }
 
-    pub fn frame(&self) -> &[u8; 64] {
+    pub fn frame(&self) -> &[u8; FRAME_LEN] {
         &self.prev_frame
     }
 

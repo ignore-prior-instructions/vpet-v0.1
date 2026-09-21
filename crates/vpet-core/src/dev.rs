@@ -102,7 +102,7 @@ pub fn set_pose(
 /// spec (`dev_set_pose`, `dev_set_global`, `dev_clear_overrides`, `dev_render_clip`) and for a
 /// caller that wants to pack+preview a global sprite directly; `render_clip` itself doesn't
 /// consult this table yet, because `render/compose.rs`'s scenes reference `ITEMS`/`EFFECTS`/
-/// `HEARTS`/`FONT_3X5` as compiled constants rather than through a lookup indirection. Species
+/// `HEARTS`/`FONT_5X7` as compiled constants rather than through a lookup indirection. Species
 /// poses (`set_pose`, consulted by every `render_clip` activity) are where the "draw a new
 /// species without rebuilding" workflow (docs/CONTENT.md "Adding a species") actually lives;
 /// wiring overrides into the global tables too is future work if editing icons/items/font live
@@ -258,16 +258,16 @@ mod tests {
             );
         }
         let fb = render_clip("totally-new-species", 0, "idle", 0);
-        assert_ne!(*fb.as_bytes(), [0u8; 64]);
+        assert_ne!(*fb.as_bytes(), [0u8; crate::render::fb::FRAME_LEN]);
 
         // An unrelated slug with nothing set at all renders blank rather than panicking.
         let blank = render_clip("does-not-exist", 0, "idle", 0);
-        assert_eq!(*blank.as_bytes(), [0u8; 64]);
+        assert_eq!(*blank.as_bytes(), [0u8; crate::render::fb::FRAME_LEN]);
 
         // Clearing drops the override; the same slug/activity now renders blank again (no
         // compiled species named "totally-new-species" to fall back to).
         clear_all();
         let after_clear = render_clip("totally-new-species", 0, "idle", 0);
-        assert_eq!(*after_clear.as_bytes(), [0u8; 64]);
+        assert_eq!(*after_clear.as_bytes(), [0u8; crate::render::fb::FRAME_LEN]);
     }
 }
