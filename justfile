@@ -72,6 +72,7 @@ web-check: wasm
 # docs/TESTING.md "Web smoke": load the page, press A/B/C, screenshot the canvas. Runs against
 # the production build web-check just produced.
 web-e2e: web-check
+    cargo build -p vpet-server
     cd hosts/web && npx playwright install --with-deps chromium && npm run test:e2e
 
 ci: fmt clippy nofloat test size imports golden parity art-check web-e2e

@@ -48,11 +48,13 @@ with an RNG-derived seed; all five property tests; a 7-day gap golden; native-vs
 ## Phase 5: sync
 
 `hosts/server` with the four endpoints, blob validation, bearer token; browser pull on
-visible, push on `SAVE_NEEDED` and `pagehide`, 409 handling; deploy web to GitHub Pages and the
-server to a small VPS or Fly.
+visible, push on `SAVE_NEEDED` and `pagehide`, 409 handling; a settings sheet on the main page
+for URL/token/pet id; web deployed to GitHub Pages; the server deployable (Dockerfile) --
+hosting it is a later step.
 
-**Done when** two browsers on different machines hand the same pet back and forth, and a
-deliberate conflict resolves to the blob with the higher `sim_now`.
+**Done when** two browsers hand the same pet back and forth, and a deliberate conflict
+resolves to the blob with the higher `sim_now`. Checked on every `just ci` by the two-context
+Playwright test against a locally spawned `vpet-server`.
 
 ## Phase 6: battle + polish
 
