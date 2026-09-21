@@ -2,12 +2,14 @@
 //! 32x16 one-bit framebuffer. No allocator, no clock, no I/O — see docs/ARCHITECTURE.md and
 //! docs/DETERMINISM.md. `std` is enabled only under `cfg(test)` (property tests need it) and
 //! will later be enabled under the `dev-overrides` feature (docs/CONTENT.md "Hot preview").
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(any(test, feature = "dev-overrides")), no_std)]
 #![deny(clippy::float_arithmetic)]
 
 mod actions;
 pub mod anim;
 pub mod assets;
+#[cfg(feature = "dev-overrides")]
+pub mod dev;
 mod events;
 pub mod meter;
 pub mod pet;

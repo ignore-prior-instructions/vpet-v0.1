@@ -8,3 +8,6 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 vpet-core = { path = "../vpet-core" }
+
+[features]
+dev-overrides = ["vpet-core/dev-overrides"]

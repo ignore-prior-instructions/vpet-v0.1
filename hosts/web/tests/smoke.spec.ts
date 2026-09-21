@@ -49,11 +49,14 @@ test("egg hatches, the menu responds to A/B/C, and state survives a reload", asy
   await expect.soft(inspectField(page, "stage")).resolves.toBe("Egg");
 
   // "an egg hatches in the browser" (docs/ROADMAP.md Phase 2 done criterion): jump the dev
-  // clock forward past hatch_secs (300s for the Phase 1 placeholder species).
-  await setDevOffset(page, "+1 day");
+  // clock forward past hatch_secs (300s for lalafu, the Phase 3 species). `+1 h` clears that
+  // comfortably while staying well under a freshly-hatched baby's ~17h starve deadline (see
+  // tests/golden/neglect_24h.vlog) -- `+1 day` did reach it, which silently made every button
+  // press below a no-op (Cart::apply_input returns immediately once `state != Alive`) without
+  // this test ever checking the `state` field to notice.
+  await setDevOffset(page, "+1 h");
   await expect(inspectField(page, "stage")).resolves.toBe("Baby");
-
-  // A/B/C navigate the menu.
+  await expect(inspectField(page, "state")).resolves.toBe("Alive"); // a dead pet ignores input below
   const beforeMenu = await canvasSnapshot(page);
   await press(page, "z"); // A: open the menu
   const menuOpen = await canvasSnapshot(page);

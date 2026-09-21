@@ -33,6 +33,16 @@ imports: wasm
     echo "imports: $n (must be 0)"; \
     test "$n" -eq 0
 
+# docs/CONTENT.md "Hot preview without rebuilding the core": a separate wasm build with the
+# `dev-overrides` feature (pose/global override overlay, `dev_*` exports), used only by
+# `hosts/web`'s `/dev/sprites` page. Debug build for fast iteration; no size gate; never copied
+# into `hosts/web/public/vpet.wasm` (the shipped artifact `just wasm` produces) or checked by
+# `imports`/`size` -- this build is expected to have imports and be well over the 64 KB budget.
+wasm-dev:
+    cargo build -p vpet-abi --features dev-overrides --target wasm32-unknown-unknown
+    mkdir -p hosts/web/public
+    cp target/wasm32-unknown-unknown/debug/vpet_abi.wasm hosts/web/public/vpet-dev.wasm
+
 art-check:
     cd tools/spritekit && uv run spritekit validate --all
     cd tools/spritekit && uv run spritekit compile --check
@@ -43,10 +53,12 @@ golden:
 bless:
     cargo run -p vpet-cli -- replay --bless tests/golden/*.vlog
 
-# Typecheck and production-build the browser host. Needs `just wasm` first so vpet.wasm exists
+# Typecheck, unit-test (docs/CONTENT.md's grid.ts/grid.py parser-parity test, against
+# tests/fixtures/packed.json -- regenerate with `spritekit dev-fixture` after changing either
+# parser), and production-build the browser host. Needs `just wasm` first so vpet.wasm exists
 # under hosts/web/public/ (the build copies it into dist/).
 web-check: wasm
-    cd hosts/web && npm ci && npm run typecheck && npm run build
+    cd hosts/web && npm ci && npm run typecheck && npm run test:unit && npm run build
 
 # docs/TESTING.md "Web smoke": load the page, press A/B/C, screenshot the canvas. Runs against
 # the production build web-check just produced.

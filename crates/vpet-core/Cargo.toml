@@ -10,5 +10,12 @@ serde = { version = "1", default-features = false, features = ["derive"] }
 [dev-dependencies]
 proptest = "1"
 
+[features]
+# docs/CONTENT.md "Hot preview without rebuilding the core": pulls in `std` for a runtime
+# pose/global override overlay and a standalone clip renderer (`src/dev.rs`), used only by
+# `just wasm-dev` / `vpet-abi`'s feature-gated `dev_*` exports. Never enabled for the shipped
+# `vpet.wasm` (`just wasm`), so it cannot affect the size gate or the zero-imports check.
+dev-overrides = []
+
 [lints.clippy]
 float_arithmetic = "deny"

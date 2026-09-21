@@ -102,6 +102,55 @@ def pack(path: Path):
         click.echo()
 
 
+@main.command(name="dev-fixture")
+@click.option(
+    "--out",
+    "out_path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Output path (default: tests/fixtures/packed.json under the repo root).",
+)
+def dev_fixture(out_path: Path | None):
+    """Dump every sprite's packed bytes as JSON, keyed by `<relpath>::<name>`.
+
+    docs/CONTENT.md "Hot preview without rebuilding the core": the parser-parity test for
+    `hosts/web/src/dev/grid.ts` (a TS port of this module's `parse`/`pack_image`/`pack_mask`)
+    compares its output against this file's, so the two parsers can never silently drift. Run
+    after any change to `grid.py`'s parsing or packing logic; re-run and re-commit alongside it.
+    """
+    root = spec_mod.find_assets_root()
+    out = out_path or (root.parent / "tests" / "fixtures" / "packed.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    fixture: dict[str, dict] = {}
+
+    def dump_file(path: Path) -> None:
+        gf = parse(str(path), path.read_text(encoding="utf-8"))
+        rel = path.relative_to(root).as_posix()
+        for s in gf.sprites:
+            img = pack_image(s.rows, gf.cell_w)
+            mask = pack_mask(s.rows, gf.cell_w)
+            fixture[f"{rel}::{s.name}"] = {
+                "w": gf.cell_w,
+                "h": gf.cell_h,
+                "img": img.hex(),
+                "mask": mask.hex() if mask is not None else None,
+            }
+
+    global_dir = root / "global"
+    if global_dir.is_dir():
+        for path in sorted(global_dir.glob("*.txt")):
+            dump_file(path)
+    species_dir = root / "species"
+    if species_dir.is_dir():
+        for slug_dir in sorted(p for p in species_dir.iterdir() if p.is_dir()):
+            for stage_file in sorted(slug_dir.glob("*.txt")):
+                dump_file(stage_file)
+
+    out.write_text(json_mod.dumps(fixture, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    click.echo(f"{len(fixture)} sprite(s) -> {out}")
+
+
 @main.command(name="new-species")
 @click.argument("slug")
 @click.option("--name", default=None, help="Display name (default: Slug.capitalize()).")
