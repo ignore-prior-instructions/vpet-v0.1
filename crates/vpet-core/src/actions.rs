@@ -43,34 +43,25 @@ fn maybe_schedule_overweight_sickness(cart: &mut Cart) {
 /// Selects the icon under the menu cursor (B while `Ui::Menu`). `Feed` opens a submenu instead
 /// of applying directly; everything else applies immediately.
 pub fn select_menu_icon(cart: &mut Cart, cursor: u8) {
-    match cursor as usize {
+    let outcome = match cursor as usize {
         icon::FEED => {
             cart.ui = Ui::FeedSub { snack: false };
+            return;
         }
-        icon::LIGHTS => {
-            lights(cart);
-        }
-        icon::PLAY => {
-            play_select(cart);
-        }
-        icon::MEDICINE => {
-            medicine(cart);
-        }
-        icon::CLEAN => {
-            clean(cart);
-        }
+        icon::LIGHTS => lights(cart),
+        icon::PLAY => play_select(cart),
+        icon::MEDICINE => medicine(cart),
+        icon::CLEAN => clean(cart),
         icon::STATUS => {
             cart.ui = Ui::Status { page: 0 };
+            return;
         }
-        icon::DISCIPLINE => {
-            discipline(cart);
-        }
-        icon::BATTLE => {
-            // Battle is Phase 6; refuse gracefully rather than doing nothing.
-            refuse(cart);
-        }
-        _ => {}
-    }
+        icon::DISCIPLINE => discipline(cart),
+        // Battle is Phase 6; refuse gracefully rather than doing nothing.
+        icon::BATTLE => refuse(cart),
+        _ => return,
+    };
+    cart.note_outcome(outcome);
 }
 
 pub fn feed_meal(cart: &mut Cart) -> Outcome {
@@ -310,4 +301,6 @@ pub(crate) fn finish_play(cart: &mut Cart, correct: u8) {
         kind: BusyKind::Result { won },
     };
     cart.timers.set(EventKind::UiBusyEnd, now.saturating_add(2));
+    // The session's stat changes land here, not at Play select.
+    cart.note_outcome(Outcome::Applied);
 }

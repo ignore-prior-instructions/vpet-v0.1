@@ -14,11 +14,12 @@
 //!   trigger was also contributing, this cancels its onset too rather than tracking multiple
 //!   contributors — a hobby-project simplification, not a determinism issue.
 
+use crate::assets::{generated, Branch};
 use crate::pet::{attention, DeathCause, Stage};
 use crate::time::NEVER;
 use crate::timers::EventKind;
 use crate::ui::{BusyKind, Ui};
-use crate::{actions, assets::generated::GAME, Cart, CartState};
+use crate::{actions, assets::generated::GAME, flags, Cart, CartState};
 
 impl Cart {
     pub(crate) fn set_attention(&mut self, bit: u8) {
@@ -26,6 +27,8 @@ impl Cart {
             self.pet.attention |= bit;
             self.attention_since[attention::index_of(bit)] = self.sim_now;
             self.reschedule_care_miss();
+            // docs/HOST_ABI.md: the pet "calls" by showing `!` and beeping.
+            self.pending_flags |= flags::BEEP;
         }
     }
 
@@ -143,6 +146,13 @@ impl Cart {
 
     pub(crate) fn fire_poop(&mut self) {
         let now = self.sim_now;
+        if self.pet.sleeping {
+            // docs/GAME_DESIGN.md: poops appear "while awake". A timer that lands inside the
+            // sleep window is dropped; `fire_wake` re-arms it. (One-shot: must clear, or
+            // `advance_to` would refire it forever at this instant.)
+            self.timers.clear(EventKind::Poop);
+            return;
+        }
         let was_empty = self.pet.poops == 0;
         self.pet.poops = (self.pet.poops + 1).min(GAME.max_poops);
         if self.pet.poop_since == NEVER {
@@ -167,28 +177,163 @@ impl Cart {
             }
         }
 
-        if self.pet.sleeping {
-            // No more poops while asleep; fire_wake re-arms this timer. Must still clear it
-            // here (it's one-shot) or `advance_to` would refire it forever at this instant.
-            self.timers.clear(EventKind::Poop);
-        } else {
-            let rules = self.stage_rules();
-            let gap =
-                self.next_rand_range(rules.poop_interval_min_secs, rules.poop_interval_max_secs);
-            self.timers.set(EventKind::Poop, now.saturating_add(gap));
-        }
+        let rules = self.stage_rules();
+        let gap = self.next_rand_range(rules.poop_interval_min_secs, rules.poop_interval_max_secs);
+        self.timers.set(EventKind::Poop, now.saturating_add(gap));
     }
 
+    /// Scheduled from the Baby -> Child evolution onward (docs/GAME_DESIGN.md: tantrums are
+    /// "Child+ only", every 4 to 8 h "awake"). A firing that lands inside the sleep window is
+    /// simply pushed out by another interval rather than waking a false call the player
+    /// couldn't answer (Discipline is refused while asleep).
     pub(crate) fn fire_tantrum(&mut self) {
-        // Only ever scheduled once Evolve actually promotes a pet to Child (Phase 4); the
-        // handler is implemented now so nothing changes shape when that scheduling hook lands.
-        self.set_attention(attention::TANTRUM);
+        if !self.pet.sleeping {
+            self.set_attention(attention::TANTRUM);
+        }
         let gap = self.next_rand_range(
             GAME.tantrum_interval_min_secs,
             GAME.tantrum_interval_max_secs,
         );
         self.timers
             .set(EventKind::Tantrum, self.sim_now.saturating_add(gap));
+    }
+
+    /// docs/STATE_MODEL.md's Evolve row and docs/GAME_DESIGN.md "Evolution". One-shot: the
+    /// Baby -> Child transition re-arms it for the Child -> Adult one; the adult transition
+    /// arms `OldAge` instead.
+    pub(crate) fn fire_evolve(&mut self) {
+        let now = self.sim_now;
+        self.timers.clear(EventKind::Evolve);
+        match self.pet.stage {
+            Stage::Baby => {
+                let species = self.pet.species;
+                self.enter_stage(species, Stage::Child);
+                let rules = self.stage_rules();
+                self.timers
+                    .set(EventKind::Evolve, now.saturating_add(rules.stage_secs));
+                let gap = self.next_rand_range(
+                    GAME.tantrum_interval_min_secs,
+                    GAME.tantrum_interval_max_secs,
+                );
+                self.timers.set(EventKind::Tantrum, now.saturating_add(gap));
+            }
+            Stage::Child => {
+                let (species, stage) = self.choose_adult_branch();
+                self.enter_stage(species, stage);
+                let rules = self.stage_rules();
+                // docs/GAME_DESIGN.md "Death": uniform in the stage's lifespan window, minus
+                // 6 h per care mistake, floored. Exactly one RNG draw, here.
+                let span = self.next_rand_range(rules.lifespan_min_secs, rules.lifespan_max_secs);
+                let penalty = (self.pet.care_mistakes as u32)
+                    .saturating_mul(GAME.lifespan_penalty_per_mistake_secs);
+                let span = span.saturating_sub(penalty).max(GAME.lifespan_floor_secs);
+                self.timers.set(EventKind::OldAge, now.saturating_add(span));
+            }
+            // Egg never has this timer; adults end by OldAge, not Evolve.
+            Stage::Egg | Stage::Adult | Stage::AdultAlt => {}
+        }
+    }
+
+    pub(crate) fn fire_old_age(&mut self) {
+        self.die(DeathCause::OldAge);
+    }
+
+    /// The stage change itself: species/stage/stage_since, meters re-anchored to the new
+    /// stage's step values *preserving their current values and paused-ness* (an evolution
+    /// during a clean night must not silently resume the meters), thresholds recomputed, and
+    /// the Evolving animation unless asleep (the Sleeping clip owns the screen then;
+    /// docs/art/ANIMATION.md).
+    fn enter_stage(&mut self, species: u8, stage: Stage) {
+        let now = self.sim_now;
+        self.pet.species = species;
+        self.pet.stage = stage;
+        self.pet.stage_since = now;
+        let rules = self.stage_rules();
+
+        let hunger_paused = self.pet.hunger.is_paused();
+        let h = self.pet.hunger.value_at(now);
+        self.pet
+            .hunger
+            .reanchor_with_step(now, h, rules.hunger_step_secs);
+        if hunger_paused {
+            self.pet.hunger.pause(now);
+        }
+        let happy_paused = self.pet.happy.is_paused();
+        let p = self.pet.happy.value_at(now);
+        self.pet
+            .happy
+            .reanchor_with_step(now, p, rules.happy_step_secs);
+        if happy_paused {
+            self.pet.happy.pause(now);
+        }
+        self.recompute_hunger_happy_timers();
+
+        if !self.pet.sleeping {
+            self.ui = Ui::Busy {
+                kind: BusyKind::Evolving,
+            };
+            // 12 ticks (docs/art/ANIMATION.md "Evolving") at ANIM_HZ = 4.
+            self.timers.set(EventKind::UiBusyEnd, now.saturating_add(3));
+        }
+        self.pending_flags |= flags::BEEP;
+    }
+
+    fn branch_matches(&self, b: &Branch) -> bool {
+        b.max_care_mistakes
+            .is_none_or(|m| self.pet.care_mistakes <= m)
+            && b.min_discipline.is_none_or(|d| self.pet.discipline >= d)
+            && b.max_weight.is_none_or(|w| self.pet.weight <= w)
+    }
+
+    /// docs/GAME_DESIGN.md "Evolution": branches are evaluated in order and the first whose
+    /// conditions all hold wins. `weight > 0` marks a randomised branch: the first match's
+    /// weight defines the set, every later matching branch with that same weight joins it, and
+    /// the RNG picks uniformly — only when the set has more than one member (docs/DETERMINISM.md
+    /// rule 6: no draw when nothing is random). `to_species` jumps lineages if that id is in
+    /// this build's registry; a target without an alternate adult falls back to `Adult`.
+    fn choose_adult_branch(&mut self) -> (u8, Stage) {
+        let species = self.species_def();
+        let branches = species.child.evolve;
+
+        let first = branches.iter().position(|b| self.branch_matches(b));
+        let Some(first) = first else {
+            return (self.pet.species, Stage::Adult);
+        };
+        let weight = branches[first].weight;
+        let chosen: &Branch = if weight == 0 {
+            &branches[first]
+        } else {
+            let candidates = branches
+                .iter()
+                .skip(first)
+                .filter(|b| b.weight == weight && self.branch_matches(b))
+                .count() as u32;
+            let pick = if candidates > 1 {
+                self.next_rand_range(0, candidates - 1) as usize
+            } else {
+                0
+            };
+            branches
+                .iter()
+                .skip(first)
+                .filter(|b| b.weight == weight && self.branch_matches(b))
+                .nth(pick)
+                .unwrap_or(&branches[first])
+        };
+
+        let target_species = match chosen.to_species {
+            Some(id) if generated::SPECIES.iter().any(|s| s.id == id) => id,
+            _ => self.pet.species,
+        };
+        let target = generated::SPECIES
+            .iter()
+            .find(|s| s.id == target_species)
+            .unwrap_or(species);
+        let stage = match chosen.to {
+            Stage::AdultAlt if target.adult_alt.is_some() => Stage::AdultAlt,
+            _ => Stage::Adult,
+        };
+        (target_species, stage)
     }
 
     pub(crate) fn fire_sick_onset(&mut self) {
@@ -274,5 +419,284 @@ impl Cart {
         } else {
             self.ui = Ui::Idle;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::assets::generated::SPECIES;
+    use crate::buttons;
+    use crate::time::Sec;
+
+    const START_MS: u64 = 1_700_000_000_000;
+
+    fn hatched(seed: u64) -> (Cart, u64) {
+        let mut cart = Cart::new_uninit();
+        cart.reset(START_MS, seed);
+        let hatch_ms = START_MS + 300_000;
+        cart.update(hatch_ms, 0);
+        assert_eq!(cart.pet.stage, Stage::Baby);
+        (cart, hatch_ms)
+    }
+
+    /// A child, straight after its (animated) evolution finished.
+    fn child(seed: u64) -> (Cart, u64) {
+        let (mut cart, mut now) = hatched(seed);
+        now += 3_600_000 + 5_000; // baby stage_secs, plus the Evolving busy end
+        cart.update(now, 0);
+        assert_eq!(cart.pet.stage, Stage::Child);
+        assert_eq!(cart.ui, Ui::Idle);
+        (cart, now)
+    }
+
+    /// Forces the pending `Evolve` to fire 1 s from now (nothing else is due that soon).
+    fn evolve_in_one_second(cart: &mut Cart, now: &mut u64) {
+        let at = cart.sim_now + 1;
+        cart.timers.set(EventKind::Evolve, at);
+        *now += 1_000;
+        cart.update(*now, 0);
+    }
+
+    #[test]
+    fn baby_evolves_to_child_at_stage_secs_and_keeps_meter_values() {
+        let (mut cart, hatch_ms) = hatched(1);
+        let just_before = hatch_ms + 3_600_000 - 1_000;
+        cart.update(just_before, 0);
+        assert_eq!(cart.pet.stage, Stage::Baby);
+        // The baby meters as they were; evaluated *at the evolve second* below, so a point
+        // that legitimately ticks over in that last second doesn't read as a re-anchor bug.
+        let hunger_before = cart.pet.hunger;
+        let happy_before = cart.pet.happy;
+
+        cart.update(hatch_ms + 3_600_000, 0);
+        assert_eq!(cart.pet.stage, Stage::Child);
+        assert_eq!(cart.pet.stage_since, cart.sim_now);
+        let t = cart.sim_now;
+        assert_eq!(cart.pet.hunger.value_at(t), hunger_before.value_at(t));
+        assert_eq!(cart.pet.happy.value_at(t), happy_before.value_at(t));
+        assert_eq!(
+            cart.pet.hunger.step_secs(),
+            SPECIES[0].child.rules.hunger_step_secs
+        );
+        assert!(matches!(
+            cart.ui,
+            Ui::Busy {
+                kind: BusyKind::Evolving
+            }
+        ));
+        assert_ne!(cart.timers.get(EventKind::UiBusyEnd), NEVER);
+        assert_ne!(cart.timers.get(EventKind::Evolve), NEVER); // re-armed for Child -> Adult
+        assert_ne!(cart.timers.get(EventKind::Tantrum), NEVER); // tantrums start at Child
+    }
+
+    #[test]
+    fn cared_for_child_becomes_the_adult_and_gets_an_old_age_timer() {
+        let (mut cart, mut now) = child(2);
+        cart.pet.care_mistakes = 4;
+        cart.pet.discipline = 40;
+        evolve_in_one_second(&mut cart, &mut now);
+        assert_eq!(cart.pet.stage, Stage::Adult);
+        assert_eq!(cart.timers.get(EventKind::Evolve), NEVER);
+
+        let rules = SPECIES[0].adult.rules;
+        let penalty = 4 * GAME.lifespan_penalty_per_mistake_secs;
+        let at = cart.timers.get(EventKind::OldAge);
+        assert!(at >= cart.sim_now + rules.lifespan_min_secs - penalty);
+        assert!(at <= cart.sim_now + rules.lifespan_max_secs - penalty);
+        assert_eq!(cart.pet.hunger.step_secs(), rules.hunger_step_secs);
+    }
+
+    #[test]
+    fn neglected_child_becomes_the_alternate_adult() {
+        let (mut cart, mut now) = child(3);
+        cart.pet.care_mistakes = 5; // one over the adult branch's max
+        cart.pet.discipline = 100;
+        evolve_in_one_second(&mut cart, &mut now);
+        assert_eq!(cart.pet.stage, Stage::AdultAlt);
+        let rules = SPECIES[0].adult_alt.as_ref().unwrap().rules;
+        assert_eq!(cart.pet.hunger.step_secs(), rules.hunger_step_secs);
+        assert_eq!(cart.pet.species, SPECIES[0].id);
+    }
+
+    #[test]
+    fn undisciplined_child_becomes_the_alternate_adult() {
+        let (mut cart, mut now) = child(4);
+        cart.pet.care_mistakes = 0;
+        cart.pet.discipline = 39; // one under the adult branch's min
+        evolve_in_one_second(&mut cart, &mut now);
+        assert_eq!(cart.pet.stage, Stage::AdultAlt);
+    }
+
+    #[test]
+    fn lifespan_penalty_is_floored() {
+        let (mut cart, mut now) = child(5);
+        cart.pet.care_mistakes = 200; // 200 * 6 h dwarfs any lifespan window
+        evolve_in_one_second(&mut cart, &mut now);
+        assert_eq!(
+            cart.timers.get(EventKind::OldAge),
+            cart.sim_now + GAME.lifespan_floor_secs
+        );
+    }
+
+    #[test]
+    fn old_age_kills_and_clears_every_timer() {
+        let (mut cart, mut now) = child(6);
+        evolve_in_one_second(&mut cart, &mut now);
+        assert!(matches!(cart.pet.stage, Stage::Adult | Stage::AdultAlt));
+        cart.timers.set(EventKind::OldAge, cart.sim_now + 1);
+        now += 1_000;
+        cart.update(now, 0);
+        assert_eq!(cart.state, CartState::Dead);
+        assert_eq!(cart.pet.death_cause, DeathCause::OldAge as u8);
+        assert_eq!(cart.timers.earliest(), None);
+    }
+
+    #[test]
+    fn evolving_while_asleep_keeps_meters_paused_and_skips_the_animation() {
+        let (mut cart, mut now) = hatched(7);
+        // Fake a clean night in progress.
+        let t: Sec = cart.sim_now;
+        cart.pet.sleeping = true;
+        cart.pet.lights_off = true;
+        cart.pet.hunger.pause(t);
+        cart.pet.happy.pause(t);
+        cart.timers.clear(EventKind::HungerEmpty);
+        cart.timers.clear(EventKind::HappyEmpty);
+
+        evolve_in_one_second(&mut cart, &mut now);
+        assert_eq!(cart.pet.stage, Stage::Child);
+        assert!(cart.pet.hunger.is_paused());
+        assert!(cart.pet.happy.is_paused());
+        assert_eq!(cart.ui, Ui::Idle);
+        assert_eq!(cart.timers.get(EventKind::UiBusyEnd), NEVER);
+    }
+
+    #[test]
+    fn a_tantrum_due_while_asleep_is_deferred_not_raised() {
+        let (mut cart, mut now) = child(8);
+        cart.pet.sleeping = true;
+        cart.timers.set(EventKind::Tantrum, cart.sim_now + 1);
+        now += 1_000;
+        cart.update(now, 0);
+        assert_eq!(cart.pet.attention & attention::TANTRUM, 0);
+        assert!(cart.timers.get(EventKind::Tantrum) > cart.sim_now);
+    }
+
+    #[test]
+    fn a_poop_due_while_asleep_is_dropped_until_wake() {
+        let (mut cart, mut now) = child(12);
+        cart.pet.sleeping = true;
+        cart.timers.set(EventKind::Poop, cart.sim_now + 1);
+        now += 1_000;
+        cart.update(now, 0);
+        assert_eq!(cart.pet.poops, 0);
+        assert_eq!(cart.timers.get(EventKind::Poop), NEVER); // fire_wake re-arms it
+    }
+
+    fn dead_by_neglect() -> (Cart, u64) {
+        let (mut cart, mut now) = hatched(9);
+        now += 90_000_000; // 25 h: well past starvation (tests/golden/neglect_24h.vlog)
+        cart.update(now, 0);
+        assert_eq!(cart.state, CartState::Dead);
+        (cart, now)
+    }
+
+    #[test]
+    fn holding_a_and_c_for_a_second_on_the_tombstone_restarts() {
+        let (mut cart, mut now) = dead_by_neglect();
+        let rng_before = cart.rng;
+        now += 1_000;
+        cart.update(now, buttons::A | buttons::C);
+        assert_eq!(cart.state, CartState::Dead); // hold just started
+        now += 1_000;
+        let out = cart.update(now, buttons::A | buttons::C);
+        assert_eq!(cart.state, CartState::Alive);
+        assert_eq!(cart.pet.stage, Stage::Egg);
+        assert_ne!(cart.rng, rng_before); // reseeded from a draw on the old stream
+        assert_ne!(out & flags::SAVE_NEEDED, 0);
+        assert_ne!(out & flags::FRAME_CHANGED, 0); // tombstone -> egg
+                                                   // The still-held buttons are not a fresh press on the new egg.
+        now += 100;
+        cart.update(now, buttons::A | buttons::C);
+        assert_eq!(cart.ui, Ui::Idle);
+    }
+
+    #[test]
+    fn releasing_before_a_second_does_not_restart() {
+        let (mut cart, mut now) = dead_by_neglect();
+        now += 1_000;
+        cart.update(now, buttons::A | buttons::C);
+        now += 500;
+        cart.update(now, 0);
+        now += 1_000;
+        cart.update(now, buttons::A | buttons::C); // a new hold, only 0 ms old
+        assert_eq!(cart.state, CartState::Dead);
+        now += 999;
+        cart.update(now, buttons::A); // wrong mask: hold abandoned
+        now += 1;
+        cart.update(now, buttons::A | buttons::C);
+        assert_eq!(cart.state, CartState::Dead);
+    }
+
+    #[test]
+    fn restart_is_deterministic_for_the_same_history() {
+        let run = || {
+            let (mut cart, mut now) = dead_by_neglect();
+            now += 1_000;
+            cart.update(now, buttons::A | buttons::C);
+            now += 1_000;
+            cart.update(now, buttons::A | buttons::C);
+            now += 400_000;
+            cart.update(now, 0); // into the new egg's life a little
+            let mut scratch = [0u8; 512];
+            let mut out = [0u8; 512];
+            let len = cart.save(&mut scratch, &mut out).unwrap();
+            out[..len].to_vec()
+        };
+        assert_eq!(run(), run());
+    }
+
+    #[test]
+    fn flags_beep_on_actions_and_attention() {
+        let (mut cart, mut now) = hatched(10);
+        // A refused meal (not hungry yet): BEEP, but nothing to save.
+        let press = |cart: &mut Cart, now: &mut u64, mask: u8| -> u32 {
+            *now += 100;
+            let f = cart.update(*now, mask);
+            *now += 100;
+            cart.update(*now, 0);
+            f
+        };
+        press(&mut cart, &mut now, buttons::A); // menu at Feed
+        press(&mut cart, &mut now, buttons::B); // FeedSub
+        let refused = press(&mut cart, &mut now, buttons::B);
+        assert_ne!(refused & flags::BEEP, 0);
+        assert_eq!(refused & flags::SAVE_NEEDED, 0);
+
+        // Wait until hungry enough, then an applied meal: BEEP and SAVE_NEEDED.
+        now += 2_000_000;
+        cart.update(now, 0);
+        now += 2_000; // let the refuse animation end
+        cart.update(now, 0);
+        press(&mut cart, &mut now, buttons::A);
+        press(&mut cart, &mut now, buttons::B);
+        let applied = press(&mut cart, &mut now, buttons::B);
+        assert_ne!(applied & flags::BEEP, 0);
+        assert_ne!(applied & flags::SAVE_NEEDED, 0);
+
+        // A call: the update that raises the bit beeps, and ATTENTION stays up while pending.
+        let (mut cart, mut now) = hatched(11);
+        // Hunger reaches 80 at 21600 s: 20 points over the 3600 s baby stage (step 180),
+        // then 60 more as a child (step 300).
+        now += 21_600_000 + 1_000;
+        let out = cart.update(now, 0);
+        assert_ne!(cart.pet.attention & attention::HUNGRY, 0);
+        assert_ne!(out & flags::BEEP, 0);
+        assert_ne!(out & flags::ATTENTION, 0);
+        now += 1_000;
+        let later = cart.update(now, 0);
+        assert_ne!(later & flags::ATTENTION, 0);
+        assert_eq!(later & flags::BEEP, 0);
     }
 }

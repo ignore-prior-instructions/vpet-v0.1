@@ -50,6 +50,7 @@ pub enum ClipId {
     DisciplineBusy,
     Result,
     Playing,
+    Evolving,
     Menu,
     FeedSub,
     Status,

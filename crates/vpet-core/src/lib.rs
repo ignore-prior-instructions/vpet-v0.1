@@ -105,6 +105,12 @@ pub struct Cart {
     prev_buttons: u8,
     anim: AnimState,
     prev_frame: [u8; 64],
+    /// `flags::*` bits raised by actions/events since the last `update` returned
+    /// (`BEEP`, `SAVE_NEEDED`); drained into that update's return value.
+    pending_flags: u32,
+    /// `now_ms` at which an A+C hold on the tombstone began (docs/HOST_ABI.md "Buttons":
+    /// "A+C held for 1000 ms on the tombstone restarts"). `None` while not holding.
+    hold_since_ms: Option<u64>,
 }
 
 impl Cart {
@@ -143,6 +149,8 @@ impl Cart {
             prev_buttons: 0,
             anim: AnimState::new(),
             prev_frame: [0u8; 64],
+            pending_flags: 0,
+            hold_since_ms: None,
         }
     }
 
@@ -165,6 +173,8 @@ impl Cart {
         self.attention_since = [NEVER; 6];
         self.prev_buttons = 0;
         self.anim = AnimState::new();
+        self.pending_flags = 0;
+        self.hold_since_ms = None;
         let tick = time::tick(now_ms);
         self.anim
             .on_state_change(ClipId::Egg, tick, now, self.rng[0]);
@@ -173,28 +183,68 @@ impl Cart {
 
     /// Advance to `now_ms`, apply input, render. Returns flags (`flags::*`).
     pub fn update(&mut self, now_ms: u64, buttons: u8) -> u32 {
+        let frame_before = self.prev_frame;
         let target = time::ms_to_sec(now_ms);
         let event_fired = self.advance_to(target);
 
-        let rising = buttons & !self.prev_buttons;
-        self.prev_buttons = buttons;
-        self.apply_input(rising);
+        let restarted = self.check_restart_hold(now_ms, buttons);
+        if !restarted {
+            let rising = buttons & !self.prev_buttons;
+            self.prev_buttons = buttons;
+            self.apply_input(rising);
+        }
 
         let tick = time::tick(now_ms);
         self.retarget_clip(tick);
 
         let fb = self.render_frame(tick);
-        let frame_changed = fb.as_bytes() != &self.prev_frame;
+        let frame_changed = fb.as_bytes() != &frame_before;
         self.prev_frame = *fb.as_bytes();
 
-        let mut out = 0u32;
+        let mut out = self.pending_flags;
+        self.pending_flags = 0;
         if frame_changed {
             out |= flags::FRAME_CHANGED;
         }
-        if event_fired {
+        if event_fired || restarted {
             out |= flags::SAVE_NEEDED;
         }
+        if self.state == CartState::Alive && self.pet.attention != 0 {
+            out |= flags::ATTENTION;
+        }
         out
+    }
+
+    /// docs/HOST_ABI.md "Buttons": A+C held for 1000 ms on the tombstone starts a new egg.
+    /// Returns `true` if the restart happened in this call. Sub-second time is allowed for
+    /// exactly this (docs/DETERMINISM.md rule 2); the new egg itself is keyed to
+    /// `floor(now_ms / 1000)` through `reset`. The seed is drawn from the dead pet's RNG
+    /// stream so a replay of the same history restarts into the same egg.
+    fn check_restart_hold(&mut self, now_ms: u64, buttons: u8) -> bool {
+        if self.state != CartState::Dead || buttons != buttons::A | buttons::C {
+            self.hold_since_ms = None;
+            return false;
+        }
+        let since = *self.hold_since_ms.get_or_insert(now_ms);
+        if now_ms.saturating_sub(since) < 1000 {
+            return false;
+        }
+        let mut rng = Rng::from_state(self.rng);
+        let seed = ((rng.next_u32() as u64) << 32) | rng.next_u32() as u64;
+        self.reset(now_ms, seed);
+        // The buttons are still down; they must not read as a fresh press on the new egg.
+        self.prev_buttons = buttons;
+        self.pending_flags |= flags::BEEP;
+        true
+    }
+
+    /// Raises the host flags an action's outcome implies (docs/HOST_ABI.md "Update flags":
+    /// `BEEP` on every applied or refused action, `SAVE_NEEDED` when something was applied).
+    pub(crate) fn note_outcome(&mut self, outcome: actions::Outcome) {
+        self.pending_flags |= flags::BEEP;
+        if outcome == actions::Outcome::Applied {
+            self.pending_flags |= flags::SAVE_NEEDED;
+        }
     }
 
     pub fn frame(&self) -> &[u8; 64] {
@@ -249,6 +299,8 @@ impl Cart {
         self.attention_since = decoded.attention_since;
         self.prev_buttons = 0;
         self.anim = AnimState::new();
+        self.pending_flags = 0;
+        self.hold_since_ms = None;
         Ok(())
     }
 
@@ -348,13 +400,8 @@ impl Cart {
             EventKind::HappyEmpty => self.fire_happy_empty(),
             EventKind::CareMiss => self.fire_care_miss(),
             EventKind::Starve => self.fire_starve(),
-            // Phase 4: evolution branches and old age. Cleared so `advance_to`'s loop always
-            // terminates; `fire_hatch`/`fire_wake` schedule these anyway so
-            // `inspect().next_event_at` stays meaningful (and so a real handler landing later
-            // doesn't also need new scheduling call sites).
-            EventKind::Evolve | EventKind::OldAge => {
-                self.timers.clear(kind);
-            }
+            EventKind::Evolve => self.fire_evolve(),
+            EventKind::OldAge => self.fire_old_age(),
         }
     }
 
@@ -427,11 +474,12 @@ impl Cart {
                 if rising & buttons::A != 0 {
                     self.ui = Ui::FeedSub { snack: !snack };
                 } else if rising & buttons::B != 0 {
-                    if snack {
-                        actions::feed_snack(self);
+                    let outcome = if snack {
+                        actions::feed_snack(self)
                     } else {
-                        actions::feed_meal(self);
-                    }
+                        actions::feed_meal(self)
+                    };
+                    self.note_outcome(outcome);
                 } else if rising & buttons::C != 0 {
                     self.ui = Ui::Idle;
                 }
@@ -510,7 +558,7 @@ impl Cart {
             } => ClipId::Playing,
             Ui::Busy {
                 kind: BusyKind::Evolving,
-            } => ClipId::Main, // Phase 4
+            } => ClipId::Evolving,
             Ui::Menu { .. } => ClipId::Menu,
             Ui::FeedSub { .. } => ClipId::FeedSub,
             Ui::Status { .. } => ClipId::Status,
@@ -579,6 +627,12 @@ impl Cart {
                 self.pet.weight,
             ),
             Ui::Busy {
+                kind: BusyKind::Evolving,
+            } => {
+                let old_set = stage_set_of(species, previous_stage(self.pet.stage));
+                compose::render_evolving(old_set, stage_set, tick, &self.anim)
+            }
+            Ui::Busy {
                 kind: BusyKind::Eating { snack },
             } => compose::render_eating(stage_set, snack, tick, &self.anim),
             Ui::Busy {
@@ -626,17 +680,33 @@ impl Cart {
     }
 
     fn stage_set(&self, species: &'static SpeciesDef) -> &'static StageSet {
-        match self.pet.stage {
-            Stage::Egg | Stage::Baby => &species.baby,
-            Stage::Child => &species.child,
-            Stage::Adult => &species.adult,
-            Stage::AdultAlt => species.adult_alt.as_ref().unwrap_or(&species.adult),
-        }
+        stage_set_of(species, self.pet.stage)
     }
 
     pub(crate) fn stage_rules(&self) -> StageRules {
         let species = self.species_def();
         self.stage_set(species).rules
+    }
+}
+
+/// The pose set a species uses at `stage`. `Egg` maps to `baby` (only the egg sprites are
+/// drawn then, but the rules table is what `Hatch` anchors to); `AdultAlt` falls back to
+/// `adult` for a species without an alternate adult.
+pub(crate) fn stage_set_of(species: &'static SpeciesDef, stage: Stage) -> &'static StageSet {
+    match stage {
+        Stage::Egg | Stage::Baby => &species.baby,
+        Stage::Child => &species.child,
+        Stage::Adult => &species.adult,
+        Stage::AdultAlt => species.adult_alt.as_ref().unwrap_or(&species.adult),
+    }
+}
+
+/// The stage a pet evolved *from* to reach `stage` (what the Evolving clip shows first).
+pub(crate) fn previous_stage(stage: Stage) -> Stage {
+    match stage {
+        Stage::Egg | Stage::Baby => Stage::Egg,
+        Stage::Child => Stage::Baby,
+        Stage::Adult | Stage::AdultAlt => Stage::Child,
     }
 }
 
@@ -966,15 +1036,31 @@ mod tests {
     }
 
     #[test]
-    fn neglect_leads_to_starvation() {
+    fn neglect_leads_to_death_within_a_day() {
         let (mut cart, mut now) = hatched(9);
-        // hunger reaches 100 at 100*180=18000s after hatch; Starve fires starve_secs (43200)
-        // later if it's never fed in the meantime.
+        // A neglected pet evolves to Child after 1 h, so poop-driven sickness applies and
+        // usually kills it (SickDamage every 30 min from 100 health) hours before the Starve
+        // timer (hunger at 100 for 12 h) would. Either way: dead, cause recorded, no timers.
+        now += 18_000_000 + 43_200_000 + 60_000;
+        cart.update(now, 0);
+        assert_eq!(cart.state, CartState::Dead);
+        assert!(matches!(
+            cart.pet.death_cause,
+            c if c == pet::DeathCause::Starvation as u8 || c == pet::DeathCause::Sickness as u8
+        ));
+        assert_eq!(cart.timers.earliest(), None);
+    }
+
+    #[test]
+    fn a_baby_that_never_evolves_starves() {
+        // Pin the starvation path on its own by keeping the pet a baby (no poop sickness):
+        // clear the Evolve timer right after hatch.
+        let (mut cart, mut now) = hatched(9);
+        cart.timers.clear(EventKind::Evolve);
         now += 18_000_000 + 43_200_000 + 60_000;
         cart.update(now, 0);
         assert_eq!(cart.state, CartState::Dead);
         assert_eq!(cart.pet.death_cause, pet::DeathCause::Starvation as u8);
-        assert_eq!(cart.timers.earliest(), None);
     }
 
     #[test]

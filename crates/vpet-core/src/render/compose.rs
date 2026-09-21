@@ -317,6 +317,32 @@ fn write_u32(buf: &mut [u8; 8], mut n: u32) -> usize {
     i
 }
 
+/// Evolution (docs/art/SCREEN_LAYOUT.md "Evolution", docs/art/ANIMATION.md "Evolving"): the
+/// old stage's `idle_a` at x = 8 with the whole buffer inverted every other tick for 8 ticks
+/// and `sparkle_a`/`sparkle_b` alternating at (0, 0) and (24, 8); then the new stage's `idle_a`
+/// shaking for 4 ticks. 12 ticks total, mirrored by the `UiBusyEnd` timer `enter_stage` sets.
+pub fn render_evolving(old: &StageSet, new: &StageSet, tick: u32, anim: &AnimState) -> Fb {
+    let mut fb = Fb::new();
+    let elapsed = tick.saturating_sub(anim.clip_start_tick);
+    if elapsed < 8 {
+        fb.blit_or(&old.idle_a.img, 8, 0);
+        let sparkle = if toggle(elapsed, 1) {
+            effect::SPARKLE_B
+        } else {
+            effect::SPARKLE_A
+        };
+        fb.blit_or(&EFFECTS[sparkle], 0, 0);
+        fb.blit_or(&EFFECTS[sparkle], 24, 8);
+        if elapsed % 2 == 1 {
+            fb.invert();
+        }
+    } else {
+        let dx = 8 + shake_dx(elapsed - 8);
+        fb.blit_or(&new.idle_a.img, dx, 0);
+    }
+    fb
+}
+
 /// Dead scene: the tombstone, static, a cross overlay.
 pub fn render_dead() -> Fb {
     let mut fb = Fb::new();
