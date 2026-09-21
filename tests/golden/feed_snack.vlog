@@ -1,0 +1,16 @@
+# feed_snack.vlog: applied right after hatch (no gate besides sleeping).
+reset 1700000000000 seed=2
+t 1700000301000 -
+snap hatched
+t 1700000301100 A
+t 1700000301200 -
+t 1700000301300 B
+t 1700000301400 -
+t 1700000301500 A
+t 1700000301600 -
+snap feed_sub_snack
+t 1700000301700 B
+t 1700000301800 -
+snap applied
+t 1700000306800 -
+snap after_eating

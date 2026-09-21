@@ -3,6 +3,11 @@ target/
 # Node
 node_modules/
 dist/
+# `just wasm`'s output copy (rebuilt from crates/vpet-abi; see justfile)
+hosts/web/public/*.wasm
+# Playwright output
+hosts/web/test-results/
+hosts/web/playwright-report/
 # Python tooling
 .venv/
 __pycache__/
@@ -10,6 +15,9 @@ __pycache__/
 # Generated art previews and concept images (large, reproducible)
 assets/**/preview/
 assets/**/concept/
+# `spritekit gen`'s per-round log (docs/art/ART_PIPELINE.md); a local working artifact, not a
+# durable asset.
+assets/**/gen-log.jsonl
 # Local config
 .env
 .env.*

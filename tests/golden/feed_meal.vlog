@@ -1,0 +1,23 @@
+# feed_meal.vlog: refused while too full, applied once hunger clears the
+# full_threshold (10). meal_hunger=30, meal_weight=2 for lalafu.
+reset 1700000000000 seed=1
+t 1700000301000 -
+snap hatched
+t 1700000301100 A
+t 1700000301200 -
+t 1700000301300 B
+t 1700000301400 -
+snap feed_sub_meal
+t 1700000301500 B
+t 1700000301600 -
+snap refused_too_full
+t 1700002201600 -
+t 1700002201700 A
+t 1700002201800 -
+t 1700002201900 B
+t 1700002202000 -
+t 1700002202100 B
+t 1700002202200 -
+snap applied
+t 1700002207200 -
+snap after_eating

@@ -1,0 +1,36 @@
+[workspace]
+resolver = "2"
+members = ["crates/vpet-core", "crates/vpet-abi", "crates/vpet-cli"]
+# vpet-abi only ever makes sense built for wasm32-unknown-unknown (`just wasm`/`just size`/
+# `just imports`, or `cargo build -p vpet-abi --target wasm32-unknown-unknown`): it's a
+# `no_std`, no-libc cdylib, and there is no libc to link against for a *native* cdylib build of
+# it (native builds of the simulation go through `vpet-core` directly, as an rlib, which is what
+# the CLI and tests use). Excluding it from `default-members` keeps a bare `cargo build`/`cargo
+# test` (what the justfile's `test`/`clippy` recipes use) working without an explicit --target;
+# `cargo build -p vpet-abi ...` and `cargo build --workspace --target wasm32-unknown-unknown`
+# still reach it explicitly.
+default-members = ["crates/vpet-core", "crates/vpet-cli"]
+
+# hosts/server joins this workspace in a later phase (it links vpet-core to validate blobs).
+# hosts/esp32 stays a separate Cargo workspace (its own toolchain; see docs/ARCHITECTURE.md).
+
+[workspace.package]
+edition = "2021"
+# Edition 2021, not 2024: the ABI crate holds `static mut` buffers referenced by pointer, which
+# is fine under 2021 and adds churn under 2024's stricter static-mut-refs handling. No ADR
+# governs this; it's a project convention, revisit only if there's a concrete reason to.
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+
+# vpet-abi is `no_std` outside of `cfg(test)`, which needs `panic = "abort"` on any native
+# (non-wasm) build too, not just --release: without an unwind runtime (no std), rustc can't
+# support the default unwind strategy. Cargo ignores this for the `test`/`bench` profiles
+# (forced to "unwind" so the test harness can catch individual test panics), which is fine
+# because vpet-abi is std-enabled under `cfg(test)` (see crates/vpet-abi/src/lib.rs) and so
+# never actually hits the no-unwind-runtime problem there.
+[profile.dev]
+panic = "abort"

@@ -1,0 +1,6 @@
+# Species registry. Append-only: never renumber or remove an entry, since saves reference a
+# species by id (docs/CONTENT.md).
+
+[[species]]
+id = 1
+slug = "lalafu"

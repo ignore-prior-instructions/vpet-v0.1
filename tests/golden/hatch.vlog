@@ -1,0 +1,40 @@
+# hatch.vlog: egg -> baby, the menu, and a save/load round trip. See docs/TESTING.md.
+# hatch_secs = 300 for the Phase 1 placeholder species.
+
+reset 1700000000000 seed=42
+t 1700000001000 -
+snap egg
+
+t 1700000001100 A         ; buttons are ignored on an egg (docs/GAME_DESIGN.md)
+t 1700000001200 -
+
+skip 240000                ; 4 minutes: enters the last-minute egg_b toggle window
+t 1700000241200 -
+snap egg_cracking
+
+skip 58700
+t 1700000299900 -          ; 1s before hatch: still an egg, hopping
+snap egg_final_second
+
+skip 1300
+t 1700000301200 -          ; past hatch_secs: now a baby
+snap hatched
+
+t 1700000302000 A          ; open the menu
+t 1700000302100 -
+snap menu_feed
+
+t 1700000302200 -          ; release A
+t 1700000303000 A          ; A again: cursor moves to the next icon
+t 1700000303100 -
+snap menu_lights
+
+t 1700000303200 -
+t 1700000304000 C          ; close the menu
+t 1700000304100 -
+snap menu_closed
+
+save
+load
+t 1700000305000 -
+snap after_reload

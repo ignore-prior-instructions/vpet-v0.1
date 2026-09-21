@@ -18,7 +18,9 @@ timestamp-based state idea and then stalled on its stack and its art. See
 
 ## Status
 
-Design phase. The docs are complete; no code yet. Start with [docs/README.md](docs/README.md).
+Phase 1 of [docs/ROADMAP.md](docs/ROADMAP.md): the core sim skeleton (egg -> hatch, the menu,
+save/load, the hatch golden) and the CLI oracle exist. Start with
+[docs/README.md](docs/README.md).
 
 ## Layout (planned)
 

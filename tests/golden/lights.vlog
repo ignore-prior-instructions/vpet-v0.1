@@ -1,0 +1,49 @@
+# lights.vlog: awake_secs=50400 for baby; Sleep fires there. Turning the
+# lights off promptly pauses hunger/happiness and clears sleepy; sleep_secs
+# =36000 later, Wake fires and gives the health bonus. Periodic feeds before
+# Sleep keep hunger from reaching 100 and starving the pet before Wake --
+# feeding is refused once asleep, so this has to happen in advance.
+reset 1700000000000 seed=6
+t 1700000301000 -
+snap hatched
+t 1700002301000 -
+t 1700002301100 A
+t 1700002301200 -
+t 1700002301300 B
+t 1700002301400 -
+t 1700002301500 B
+t 1700002301600 -
+t 1700017301000 -
+t 1700017301100 A
+t 1700017301200 -
+t 1700017301300 B
+t 1700017301400 -
+t 1700017301500 B
+t 1700017301600 -
+t 1700032301000 -
+t 1700032301100 A
+t 1700032301200 -
+t 1700032301300 B
+t 1700032301400 -
+t 1700032301500 B
+t 1700032301600 -
+t 1700047301000 -
+t 1700047301100 A
+t 1700047301200 -
+t 1700047301300 B
+t 1700047301400 -
+t 1700047301500 B
+t 1700047301600 -
+t 1700050702000 -
+snap sleep_started
+t 1700050702100 A
+t 1700050702200 -
+t 1700050702300 A
+t 1700050702400 -
+t 1700050702500 B
+t 1700050702600 -
+snap lights_off_clean_night
+t 1700054302000 -
+snap meters_paused
+t 1700086706000 -
+snap woke_with_bonus

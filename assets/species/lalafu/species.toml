@@ -1,0 +1,43 @@
+[species]
+id = 1                                  # must match registry.toml
+slug = "lalafu"
+name = "Lalafu"
+description = "A round, cheerful creature with two long ears and stubby feet."
+visual_traits = ["round body", "two long upright ears", "stubby feet", "no arms", "dot eyes"]
+hatch_secs = 300
+
+[schedule]
+awake_secs = 50400
+sleep_secs = 36000
+
+[stages.baby]
+stage_secs = 3600
+hunger_step_secs = 180
+happy_step_secs = 240
+poop_interval_secs = [7200, 10800]
+
+[stages.child]
+stage_secs = 172800
+hunger_step_secs = 300
+happy_step_secs = 450
+poop_interval_secs = [7200, 10800]
+
+[[stages.child.evolve.branch]]
+to = "adult"
+max_care_mistakes = 4
+min_discipline = 40
+
+[[stages.child.evolve.branch]]
+to = "adult_alt"
+
+[stages.adult]
+hunger_step_secs = 360
+happy_step_secs = 540
+poop_interval_secs = [7200, 10800]
+lifespan_secs = [432000, 864000]
+battle = { power = 6, defense = 4, hp = 10, crit_pct = 10 }
+
+[assets]
+egg_override  = false        # ships the global egg_a/egg_b poses
+food_override = false
+adult_alt     = false        # Phase 3 scope: no alternate adult yet (docs/ROADMAP.md Phase 4)

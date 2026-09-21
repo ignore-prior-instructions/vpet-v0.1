@@ -1,0 +1,554 @@
+{
+  "global/effects.txt::attention": {
+    "h": 8,
+    "img": "3030303030003000",
+    "mask": null,
+    "w": 8
+  },
+  "global/effects.txt::cross": {
+    "h": 8,
+    "img": "8142241818244281",
+    "mask": null,
+    "w": 8
+  },
+  "global/effects.txt::heart": {
+    "h": 8,
+    "img": "66ffff7e7e3c1800",
+    "mask": null,
+    "w": 8
+  },
+  "global/effects.txt::heart_small": {
+    "h": 8,
+    "img": "006cff7e3c180000",
+    "mask": null,
+    "w": 8
+  },
+  "global/effects.txt::hit_star": {
+    "h": 8,
+    "img": "183c7effff7e3c18",
+    "mask": null,
+    "w": 8
+  },
+  "global/effects.txt::note": {
+    "h": 8,
+    "img": "03010101013d7e3c",
+    "mask": null,
+    "w": 8
+  },
+  "global/effects.txt::skull": {
+    "h": 8,
+    "img": "3c7effdbff7e3c00",
+    "mask": "0000002400000000",
+    "w": 8
+  },
+  "global/effects.txt::sparkle_a": {
+    "h": 8,
+    "img": "180000c300001800",
+    "mask": null,
+    "w": 8
+  },
+  "global/effects.txt::sparkle_b": {
+    "h": 8,
+    "img": "0066240000246600",
+    "mask": null,
+    "w": 8
+  },
+  "global/effects.txt::sweat": {
+    "h": 8,
+    "img": "0010387c7c381000",
+    "mask": null,
+    "w": 8
+  },
+  "global/effects.txt::zz_a": {
+    "h": 8,
+    "img": "ff010204081020ff",
+    "mask": null,
+    "w": 8
+  },
+  "global/effects.txt::zz_b": {
+    "h": 8,
+    "img": "000f0102040f0000",
+    "mask": null,
+    "w": 8
+  },
+  "global/egg.txt::egg_a": {
+    "h": 16,
+    "img": "000003c007e00ff01ff81ff83ffc3ffc3ffc3ffc3ffc1ff81ff80ff007e003c0",
+    "mask": null,
+    "w": 16
+  },
+  "global/egg.txt::egg_b": {
+    "h": 16,
+    "img": "000003c007e00ff01ff81ff83ffc00003ffc3ffc3ffc1ff81ff80ff007e003c0",
+    "mask": null,
+    "w": 16
+  },
+  "global/font3x5.txt::0": {
+    "h": 5,
+    "img": "e0a0a0a0e0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::1": {
+    "h": 5,
+    "img": "40c04040e0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::2": {
+    "h": 5,
+    "img": "c0204080e0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::3": {
+    "h": 5,
+    "img": "c0204020c0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::4": {
+    "h": 5,
+    "img": "a0a0e02020",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::5": {
+    "h": 5,
+    "img": "e080c020c0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::6": {
+    "h": 5,
+    "img": "6080c0a040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::7": {
+    "h": 5,
+    "img": "e020408080",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::8": {
+    "h": 5,
+    "img": "40a040a040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::9": {
+    "h": 5,
+    "img": "40a0602040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::a": {
+    "h": 5,
+    "img": "a0a0e0a0a0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::b": {
+    "h": 5,
+    "img": "c0a0c0a0c0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::c": {
+    "h": 5,
+    "img": "6080808060",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::colon": {
+    "h": 5,
+    "img": "0040004000",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::d": {
+    "h": 5,
+    "img": "c0a0a0a0c0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::dash": {
+    "h": 5,
+    "img": "0000e00000",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::dot": {
+    "h": 5,
+    "img": "0000000040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::e": {
+    "h": 5,
+    "img": "e080c080e0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::excl": {
+    "h": 5,
+    "img": "4040400040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::f": {
+    "h": 5,
+    "img": "e080c08080",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::g": {
+    "h": 5,
+    "img": "6080a0a060",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::h": {
+    "h": 5,
+    "img": "a0a0e0a0a0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::i": {
+    "h": 5,
+    "img": "e0404040e0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::j": {
+    "h": 5,
+    "img": "202020a040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::k": {
+    "h": 5,
+    "img": "a0a0c0a0a0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::l": {
+    "h": 5,
+    "img": "80808080e0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::m": {
+    "h": 5,
+    "img": "a0e0e0a0a0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::n": {
+    "h": 5,
+    "img": "a0c0a060a0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::o": {
+    "h": 5,
+    "img": "40a0a0a040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::p": {
+    "h": 5,
+    "img": "c0a0c08080",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::q": {
+    "h": 5,
+    "img": "40a0a04020",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::quest": {
+    "h": 5,
+    "img": "c020400040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::r": {
+    "h": 5,
+    "img": "c0a0c0a0a0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::s": {
+    "h": 5,
+    "img": "60804020c0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::t": {
+    "h": 5,
+    "img": "e040404040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::u": {
+    "h": 5,
+    "img": "a0a0a0a040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::v": {
+    "h": 5,
+    "img": "a0a0a0a040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::w": {
+    "h": 5,
+    "img": "a0a0a0e0a0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::x": {
+    "h": 5,
+    "img": "a0a040a0a0",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::y": {
+    "h": 5,
+    "img": "a0a0404040",
+    "mask": null,
+    "w": 3
+  },
+  "global/font3x5.txt::z": {
+    "h": 5,
+    "img": "e0204080e0",
+    "mask": null,
+    "w": 3
+  },
+  "global/hearts.txt::heart_empty": {
+    "h": 7,
+    "img": "6c928282442810",
+    "mask": null,
+    "w": 7
+  },
+  "global/hearts.txt::heart_full": {
+    "h": 7,
+    "img": "6cfefefe7c3810",
+    "mask": null,
+    "w": 7
+  },
+  "global/icons.txt::battle": {
+    "h": 8,
+    "img": "c66c3838386cc600",
+    "mask": null,
+    "w": 8
+  },
+  "global/icons.txt::clean": {
+    "h": 8,
+    "img": "10387cfefe7c3800",
+    "mask": null,
+    "w": 8
+  },
+  "global/icons.txt::discipline": {
+    "h": 8,
+    "img": "3c3c3c3c003c0000",
+    "mask": null,
+    "w": 8
+  },
+  "global/icons.txt::feed": {
+    "h": 8,
+    "img": "00387cfe7c380000",
+    "mask": null,
+    "w": 8
+  },
+  "global/icons.txt::lights": {
+    "h": 8,
+    "img": "44387cfe7c384400",
+    "mask": null,
+    "w": 8
+  },
+  "global/icons.txt::medicine": {
+    "h": 8,
+    "img": "383838fe38383800",
+    "mask": null,
+    "w": 8
+  },
+  "global/icons.txt::play": {
+    "h": 8,
+    "img": "c0e0f0f8f0e0c000",
+    "mask": null,
+    "w": 8
+  },
+  "global/icons.txt::status": {
+    "h": 8,
+    "img": "fe00fe00fe00fe00",
+    "mask": null,
+    "w": 8
+  },
+  "global/items.txt::food_a": {
+    "h": 8,
+    "img": "007effffff7e0000",
+    "mask": null,
+    "w": 8
+  },
+  "global/items.txt::food_b": {
+    "h": 8,
+    "img": "00003c7e7e3c0000",
+    "mask": null,
+    "w": 8
+  },
+  "global/items.txt::food_c": {
+    "h": 8,
+    "img": "000000183c180000",
+    "mask": null,
+    "w": 8
+  },
+  "global/items.txt::poop_a": {
+    "h": 8,
+    "img": "00387c927c380000",
+    "mask": null,
+    "w": 8
+  },
+  "global/items.txt::poop_b": {
+    "h": 8,
+    "img": "00788498a0700000",
+    "mask": null,
+    "w": 8
+  },
+  "global/items.txt::snack_a": {
+    "h": 8,
+    "img": "003c7e7e7e3c0000",
+    "mask": null,
+    "w": 8
+  },
+  "global/items.txt::snack_b": {
+    "h": 8,
+    "img": "003c787c3c000000",
+    "mask": null,
+    "w": 8
+  },
+  "global/items.txt::snack_c": {
+    "h": 8,
+    "img": "000000183c180000",
+    "mask": null,
+    "w": 8
+  },
+  "global/tombstone.txt::tombstone": {
+    "h": 16,
+    "img": "00000ff01ff83ffc3ffc381c381c381c381c381c381c381c3ffc3ffc3ffc3ffc",
+    "mask": null,
+    "w": 16
+  },
+  "species/lalafu/adult.txt::eat": {
+    "h": 16,
+    "img": "00000c300c300c300c301ff83dbc3ffc3ffc3cfc3ffc3ffc1ff81ff80e700e70",
+    "mask": "0000000000000000000000000240000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/adult.txt::happy": {
+    "h": 16,
+    "img": "000018181818181818181ff83dbc3ffc3ffc3ffc3ffc3ffc1ff81ff80e700e70",
+    "mask": "0000000000000000000000000240000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/adult.txt::idle_a": {
+    "h": 16,
+    "img": "00000c300c300c300c301ff83dbc3ffc3ffc3ffc3ffc3ffc1ff81ff80e700e70",
+    "mask": "0000000000000000000000000240000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/adult.txt::idle_b": {
+    "h": 16,
+    "img": "000000000c300c300c301ff83dbc3ffc3ffc3ffc3ffc3ffc1ff81ff80e700e70",
+    "mask": "0000000000000000000000000240000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/adult.txt::sad": {
+    "h": 16,
+    "img": "0000000000000c300c301ff83dbc3ffc3ffc3ffc3ffc3ffc1ff81ff80e700e70",
+    "mask": "0000000000000000000000000240000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/adult.txt::sleep": {
+    "h": 16,
+    "img": "00000000000000000000000000000000000000001ff83ffc3ffc1ff80ff00ff0",
+    "mask": null,
+    "w": 16
+  },
+  "species/lalafu/baby.txt::eat": {
+    "h": 16,
+    "img": "00000000000000000000000003c007e00db00ff00e700ff007e007e006600660",
+    "mask": "0000000000000000000000000000000002400000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/baby.txt::happy": {
+    "h": 16,
+    "img": "0000000000000000000000000ff007e00db00ff00ff00ff007e007e006600660",
+    "mask": "0000000000000000000000000000000002400000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/baby.txt::idle_a": {
+    "h": 16,
+    "img": "00000000000000000000000003c007e00db00ff00ff00ff007e007e006600660",
+    "mask": "0000000000000000000000000000000002400000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/baby.txt::idle_b": {
+    "h": 16,
+    "img": "000000000000000000000000000007e00db00ff00ff00ff007e007e006600660",
+    "mask": "0000000000000000000000000000000002400000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/baby.txt::sad": {
+    "h": 16,
+    "img": "000000000000000000000000000007e00db00ff00ff00ff007e003c006600660",
+    "mask": "0000000000000000000000000000000002400000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/baby.txt::sleep": {
+    "h": 16,
+    "img": "00000000000000000000000000000000000007e00ff007e007e003c003c003c0",
+    "mask": null,
+    "w": 16
+  },
+  "species/lalafu/child.txt::eat": {
+    "h": 16,
+    "img": "0000000000000c300c301ff03dbc3ffc3ffc3cfc3ffc3ffc1ff80ff00e700e70",
+    "mask": "0000000000000000000000000240000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/child.txt::happy": {
+    "h": 16,
+    "img": "000000000000181818181ff03dbc3ffc3ffc3ffc3ffc3ffc1ff80ff00e700e70",
+    "mask": "0000000000000000000000000240000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/child.txt::idle_a": {
+    "h": 16,
+    "img": "0000000000000c300c301ff03dbc3ffc3ffc3ffc3ffc3ffc1ff80ff00e700e70",
+    "mask": "0000000000000000000000000240000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/child.txt::idle_b": {
+    "h": 16,
+    "img": "00000000000000000c301ff03dbc3ffc3ffc3ffc3ffc3ffc1ff80ff00e700e70",
+    "mask": "0000000000000000000000000240000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/child.txt::sad": {
+    "h": 16,
+    "img": "000000000000000000001ff03dbc3ffc3ffc3ffc3ffc3ffc1ff80ff00e700e70",
+    "mask": "0000000000000000000000000240000000000000000000000000000000000000",
+    "w": 16
+  },
+  "species/lalafu/child.txt::sleep": {
+    "h": 16,
+    "img": "000000000000000000000000000000000000000000001ff83ffc1ff80ff00ff0",
+    "mask": null,
+    "w": 16
+  }
+}

@@ -1,0 +1,127 @@
+:root {
+  --bezel-bg: #111;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 16px;
+  background: #1a1a1a;
+  font-family: system-ui, sans-serif;
+  color: #eee;
+  box-sizing: border-box;
+}
+
+#banner {
+  background: #7a1f1f;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  max-width: 480px;
+  text-align: center;
+}
+
+#bezel {
+  position: relative;
+  background: var(--bezel-bg);
+  padding: 24px;
+  border-radius: 12px;
+}
+
+body[data-theme="lcd"] #bezel {
+  --bezel-bg: #8a9878;
+}
+
+#screen {
+  width: 512px;
+  height: 256px;
+  max-width: 80vw;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+#attention {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+#attention.active {
+  background: #ff5050;
+  box-shadow: 0 0 6px 2px #ff5050;
+}
+
+#buttons {
+  display: flex;
+  gap: 12px;
+}
+
+#buttons button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #444;
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+#buttons button:active {
+  background: #666;
+}
+
+#devpanel {
+  width: 100%;
+  max-width: 640px;
+  background: #222;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+}
+
+#devpanel section {
+  margin-bottom: 12px;
+}
+
+#devpanel h3 {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  color: #9fe8ff;
+}
+
+table.inspect {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+table.inspect td {
+  padding: 2px 8px 2px 0;
+  border-bottom: 1px solid #333;
+}
+
+table.inspect td:first-child {
+  color: #aaa;
+  font-family: monospace;
+}
+
+#devpanel button {
+  margin: 0 6px 6px 0;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+#devpanel input[type="number"] {
+  width: 120px;
+}

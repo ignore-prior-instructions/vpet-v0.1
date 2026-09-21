@@ -1,0 +1,15 @@
+# neglect_24h.vlog: 24h of pure neglect. hunger reaches 100 at 18000s after
+# hatch; Starve fires 43200s (12h) later, at hatch+61200s -- well inside 24h,
+# so the pet starves. Along the way: HungerEmpty/HappyEmpty calls, care
+# mistakes, and whatever poops/sickness the RNG draws.
+reset 1700000000000 seed=9
+t 1700000301000 -
+snap hatched
+t 1700003901000 -
+snap plus_1h
+t 1700014701000 -
+snap hungry_call
+t 1700015602000 -
+snap first_care_mistake
+t 1700086701000 -
+snap dead_by_starvation
