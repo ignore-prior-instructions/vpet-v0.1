@@ -1,0 +1,30 @@
+# status.vlog: all five status pages (hunger, happiness, discipline,
+# age/weight, health), paged with A.
+reset 1700000000000 seed=8
+t 1700000301000 -
+snap hatched
+t 1700000301100 A
+t 1700000301200 -
+t 1700000301300 A
+t 1700000301400 -
+t 1700000301500 A
+t 1700000301600 -
+t 1700000301700 A
+t 1700000301800 -
+t 1700000301900 A
+t 1700000302000 -
+t 1700000302100 A
+t 1700000302200 -
+snap page_hunger
+t 1700000302300 A
+t 1700000302400 -
+snap page_happiness
+t 1700000302500 A
+t 1700000302600 -
+snap page_discipline
+t 1700000302700 A
+t 1700000302800 -
+snap page_age_weight
+t 1700000302900 A
+t 1700000303000 -
+snap page_health

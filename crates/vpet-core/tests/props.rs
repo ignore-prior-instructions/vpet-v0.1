@@ -120,4 +120,63 @@ proptest! {
         reloaded.update(further_ms, 0);
         prop_assert_eq!(save_bytes(&original), save_bytes(&reloaded));
     }
+
+    /// The same press timestamps delivered at 5 Hz and 60 Hz must produce identical blobs
+    /// (docs/DETERMINISM.md rule 7, docs/TESTING.md property 2). Each press here is held for a
+    /// full second — comfortably longer than either poll interval — so both hosts are
+    /// guaranteed to observe every rising edge; a press held for less than one poll interval
+    /// could be missed by that particular host, which is a real, documented limitation of
+    /// held-state polling (docs/HOST_ABI.md "Buttons"), not a determinism bug this property
+    /// covers.
+    ///
+    /// Press windows are anchored to whole-second boundaries (`round_up_to_sec`). Inputs are
+    /// applied at sim second `floor(now_ms / 1000)` (docs/HOST_ABI.md "Buttons"), so if a press
+    /// window started at an arbitrary sub-second offset, two poll rates could observe the same
+    /// held edge a few ms apart yet land on *different* floor-seconds whenever that offset sits
+    /// within one poll interval of a second boundary — another real polling-granularity
+    /// limitation, not a determinism bug, but one this property must route around (rather than
+    /// stumble into at random) to test what it's actually meant to test.
+    #[test]
+    fn poll_rate_invariance(
+        seed in any::<u64>(),
+        start_ms in START_MS_RANGE,
+        presses in proptest::collection::vec(1u8..8, 1..6),
+    ) {
+        fn round_up_to_sec(ms: u64) -> u64 {
+            ms.div_ceil(1000) * 1000
+        }
+
+        fn run(start_ms: u64, seed: u64, presses: &[u8], poll_ms: u64) -> Vec<u8> {
+            let mut cart = Cart::new_uninit();
+            cart.reset(start_ms, seed);
+            let hatch_ms = start_ms + 300_000;
+            cart.update(hatch_ms, 0); // hatch, so buttons open the menu and do something
+
+            // Round up to the next whole second: every offset added below (10_000, 1_000,
+            // 2_000) is itself a multiple of 1000, so every press window boundary stays
+            // second-aligned from here on, for every press in the sequence.
+            let mut now = round_up_to_sec(hatch_ms);
+            for &mask in presses {
+                let press_start = now + 10_000;
+                let press_end = press_start + 1_000;
+                let settle = press_end + 2_000;
+                let mut t = now;
+                while t < settle {
+                    let held = if t >= press_start && t < press_end { mask } else { 0 };
+                    cart.update(t, held);
+                    t += poll_ms;
+                }
+                cart.update(settle, 0);
+                now = settle;
+            }
+            let mut scratch = [0u8; 512];
+            let mut out = [0u8; 512];
+            let len = cart.save(&mut scratch, &mut out).expect("save buffer too small");
+            out[0..len].to_vec()
+        }
+
+        let slow = run(start_ms, seed, &presses, 200); // 5 Hz
+        let fast = run(start_ms, seed, &presses, 17);  // ~60 Hz
+        prop_assert_eq!(slow, fast);
+    }
 }

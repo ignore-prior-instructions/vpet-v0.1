@@ -7,12 +7,24 @@
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum BusyKind {
-    Eating,
+    /// `snack`: which item frames (docs/art/SCREEN_LAYOUT.md "Eat scene") the busy animation
+    /// should show, `food_a/b/c` or `snack_a/b/c`.
+    Eating {
+        snack: bool,
+    },
     Refuse,
-    Playing { seq: u8, round: u8, correct: u8 },
+    Playing {
+        seq: u8,
+        round: u8,
+        correct: u8,
+    },
     Discipline,
     Evolving,
-    Result,
+    /// `won`: whether the just-finished Play round was a win (docs/art/ANIMATION.md
+    /// "BattleResult"/Play result: happy+heart on a win, sad+sweat otherwise).
+    Result {
+        won: bool,
+    },
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -92,6 +104,12 @@ mod tests {
         let cases = [
             Ui::Idle,
             Ui::Menu { cursor: 3 },
+            Ui::Busy {
+                kind: BusyKind::Eating { snack: true },
+            },
+            Ui::Busy {
+                kind: BusyKind::Result { won: false },
+            },
             Ui::Busy {
                 kind: BusyKind::Playing {
                     seq: 1,

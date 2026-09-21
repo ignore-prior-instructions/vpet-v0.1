@@ -45,7 +45,14 @@ impl Fb {
         }
     }
 
-    fn blit_op(&mut self, sprite: &Sprite, x: i32, y: i32, op: impl Fn(bool, bool) -> bool) {
+    fn blit_op_ex(
+        &mut self,
+        sprite: &Sprite,
+        x: i32,
+        y: i32,
+        flip_h: bool,
+        op: impl Fn(bool, bool) -> bool,
+    ) {
         let stride = (sprite.w as usize).div_ceil(8);
         for row in 0..sprite.h as i32 {
             let py = y + row;
@@ -57,8 +64,13 @@ impl Fb {
                 if !(0..Self::W).contains(&px) {
                     continue;
                 }
-                let byte_i = row as usize * stride + (col as usize) / 8;
-                let bit_i = 7 - (col as usize % 8);
+                let src_col = if flip_h {
+                    sprite.w as i32 - 1 - col
+                } else {
+                    col
+                } as usize;
+                let byte_i = row as usize * stride + src_col / 8;
+                let bit_i = 7 - (src_col % 8);
                 let Some(&byte) = sprite.rows.get(byte_i) else {
                     continue;
                 };
@@ -69,9 +81,19 @@ impl Fb {
         }
     }
 
+    fn blit_op(&mut self, sprite: &Sprite, x: i32, y: i32, op: impl Fn(bool, bool) -> bool) {
+        self.blit_op_ex(sprite, x, y, false, op);
+    }
+
     /// OR a sprite onto the buffer (ordinary draw). Clips at every edge.
     pub fn blit_or(&mut self, sprite: &Sprite, x: i32, y: i32) {
         self.blit_op(sprite, x, y, |dst, src| dst || src);
+    }
+
+    /// OR a sprite onto the buffer, mirrored horizontally (docs/art/ANIMATION.md `flip_h`: the
+    /// Play scene facing left/right, Battle facing the opponent).
+    pub fn blit_or_flipped(&mut self, sprite: &Sprite, x: i32, y: i32) {
+        self.blit_op_ex(sprite, x, y, true, |dst, src| dst || src);
     }
 
     /// XOR a sprite onto the buffer (blink masks, and cursor inversion via `invert_rect`).
@@ -178,5 +200,20 @@ mod tests {
         fb.blit_or(&sprite2x2_full(), 0, 0);
         fb.blit_xor(&sprite2x2_full(), 0, 0);
         assert!(!fb.get(0, 0)); // XORed back off
+    }
+
+    #[test]
+    fn flipped_blit_mirrors_columns() {
+        // An L-shape: on at (0,0) only.
+        static ROWS: [u8; 2] = [0b1000_0000, 0b0000_0000];
+        let sprite = Sprite {
+            w: 2,
+            h: 2,
+            rows: &ROWS,
+        };
+        let mut fb = Fb::new();
+        fb.blit_or_flipped(&sprite, 0, 0);
+        assert!(!fb.get(0, 0)); // was column 0, now mirrored to column 1
+        assert!(fb.get(1, 0));
     }
 }

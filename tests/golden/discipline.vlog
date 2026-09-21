@@ -1,0 +1,25 @@
+# discipline.vlog: no tantrum can be pending in Phase 3 (Tantrum only starts
+# getting scheduled once Evolve promotes a pet to Child, which is Phase 4), so
+# this always takes the docs/GAME_DESIGN.md "wrong" branch: happiness -5.
+reset 1700000000000 seed=7
+t 1700000301000 -
+snap hatched
+t 1700000301100 A
+t 1700000301200 -
+t 1700000301300 A
+t 1700000301400 -
+t 1700000301500 A
+t 1700000301600 -
+t 1700000301700 A
+t 1700000301800 -
+t 1700000301900 A
+t 1700000302000 -
+t 1700000302100 A
+t 1700000302200 -
+t 1700000302300 A
+t 1700000302400 -
+t 1700000302500 B
+t 1700000302600 -
+snap applied
+t 1700000304600 -
+snap after_busy

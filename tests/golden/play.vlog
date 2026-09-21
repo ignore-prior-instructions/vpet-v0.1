@@ -1,0 +1,32 @@
+# play.vlog: select Play, guess all 5 rounds with A, see the scored result.
+# The RNG-drawn direction sequence means some guesses land right and some
+# wrong; the golden just needs to be deterministic, not a perfect score.
+reset 1700000000000 seed=3
+t 1700000301000 -
+snap hatched
+t 1700000301100 A
+t 1700000301200 -
+t 1700000301300 A
+t 1700000301400 -
+t 1700000301500 A
+t 1700000301600 -
+t 1700000301700 B
+t 1700000301800 -
+snap playing_round_0
+t 1700000301900 A
+t 1700000302000 -
+snap playing_after_round_0
+t 1700000302100 A
+t 1700000302200 -
+snap playing_after_round_1
+t 1700000302300 A
+t 1700000302400 -
+snap playing_after_round_2
+t 1700000302500 A
+t 1700000302600 -
+snap playing_after_round_3
+t 1700000302700 A
+t 1700000302800 -
+snap playing_after_round_4
+t 1700000305800 -
+snap result

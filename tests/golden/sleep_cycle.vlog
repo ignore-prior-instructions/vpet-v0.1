@@ -1,0 +1,42 @@
+# sleep_cycle.vlog: lights left on through the whole sleep window: sleepy
+# goes unanswered for care_miss_secs (a care mistake), meters keep running,
+# and there's no health bonus at wake (contrast with lights.vlog's clean
+# night). Periodic feeds before Sleep keep hunger from starving the pet
+# before Wake.
+reset 1700000000000 seed=10
+t 1700000301000 -
+snap hatched
+t 1700002301000 -
+t 1700002301100 A
+t 1700002301200 -
+t 1700002301300 B
+t 1700002301400 -
+t 1700002301500 B
+t 1700002301600 -
+t 1700017301000 -
+t 1700017301100 A
+t 1700017301200 -
+t 1700017301300 B
+t 1700017301400 -
+t 1700017301500 B
+t 1700017301600 -
+t 1700032301000 -
+t 1700032301100 A
+t 1700032301200 -
+t 1700032301300 B
+t 1700032301400 -
+t 1700032301500 B
+t 1700032301600 -
+t 1700047301000 -
+t 1700047301100 A
+t 1700047301200 -
+t 1700047301300 B
+t 1700047301400 -
+t 1700047301500 B
+t 1700047301600 -
+t 1700050702000 -
+snap sleep_started
+t 1700051603000 -
+snap dirty_sleep_care_mistake
+t 1700086706000 -
+snap woke_no_bonus

@@ -42,8 +42,18 @@ impl Default for AnimState {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClipId {
     Egg,
-    Idle,
+    Main, // idle/dirty
+    Sick,
+    Sleeping,
+    Eating,
+    Refuse,
+    DisciplineBusy,
+    Result,
+    Playing,
     Menu,
+    FeedSub,
+    Status,
+    Dead,
 }
 
 /// A cheap, well-mixed integer hash (Murmur3's 32-bit finalizer), used to turn `(seed, index)`
@@ -66,6 +76,12 @@ pub fn toggle(elapsed_ticks: u32, period: u32) -> bool {
 /// `hop`: vertical offset for a 4-tick hop cycle, `[0, -1, -2, -1]`.
 pub fn hop_dy(elapsed_ticks: u32) -> i32 {
     const TABLE: [i32; 4] = [0, -1, -2, -1];
+    TABLE[(elapsed_ticks % 4) as usize]
+}
+
+/// `shake`: horizontal offset for a 4-tick shake cycle, `[-1, 1, -1, 0]` (Refuse, Discipline).
+pub fn shake_dx(elapsed_ticks: u32) -> i32 {
+    const TABLE: [i32; 4] = [-1, 1, -1, 0];
     TABLE[(elapsed_ticks % 4) as usize]
 }
 
@@ -143,6 +159,15 @@ mod tests {
         assert_eq!(hop_dy(2), -2);
         assert_eq!(hop_dy(3), -1);
         assert_eq!(hop_dy(4), 0);
+    }
+
+    #[test]
+    fn shake_matches_table() {
+        assert_eq!(shake_dx(0), -1);
+        assert_eq!(shake_dx(1), 1);
+        assert_eq!(shake_dx(2), -1);
+        assert_eq!(shake_dx(3), 0);
+        assert_eq!(shake_dx(4), -1);
     }
 
     #[test]

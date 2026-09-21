@@ -5,8 +5,10 @@
 #![cfg_attr(not(test), no_std)]
 #![deny(clippy::float_arithmetic)]
 
+mod actions;
 pub mod anim;
 pub mod assets;
+mod events;
 pub mod meter;
 pub mod pet;
 pub mod render;
@@ -17,7 +19,7 @@ pub mod timers;
 pub mod ui;
 
 use anim::{AnimState, ClipId};
-use assets::{generated, SpeciesDef, StageSet};
+use assets::{generated, SpeciesDef, StageRules, StageSet};
 use meter::Meter;
 use pet::{Pet, Stage};
 use render::Fb;
@@ -26,7 +28,7 @@ use save::v1::SaveV1;
 use save::LoadError;
 use time::{Sec, NEVER};
 use timers::{EventKind, Timers};
-use ui::Ui;
+use ui::{BusyKind, Ui};
 
 /// Bumps on any change to exports, buffer sizes, frame format, flag bits, error codes, or
 /// `Inspect` (docs/HOST_ABI.md "Versioning").
@@ -329,26 +331,26 @@ impl Cart {
     fn fire(&mut self, kind: EventKind) {
         match kind {
             EventKind::Hatch => self.fire_hatch(),
-            EventKind::UiBusyEnd | EventKind::MenuTimeout => {
+            EventKind::MenuTimeout => {
                 self.ui = Ui::Idle;
                 self.timers.clear(kind);
             }
-            // Phase 3/4 implement these handlers (evolution, sleep, poop, sickness, care
-            // misses, starvation, old age). For now they just clear so `advance_to`'s loop
-            // always terminates; they were scheduled by `fire_hatch` below purely so
-            // `inspect().next_event_at` is meaningful before those systems exist.
-            EventKind::Wake
-            | EventKind::Sleep
-            | EventKind::Evolve
-            | EventKind::OldAge
-            | EventKind::Poop
-            | EventKind::Tantrum
-            | EventKind::SickOnset
-            | EventKind::HungerEmpty
-            | EventKind::HappyEmpty
-            | EventKind::CareMiss
-            | EventKind::SickDamage
-            | EventKind::Starve => {
+            EventKind::UiBusyEnd => self.fire_ui_busy_end(),
+            EventKind::Sleep => self.fire_sleep(),
+            EventKind::Wake => self.fire_wake(),
+            EventKind::Poop => self.fire_poop(),
+            EventKind::Tantrum => self.fire_tantrum(),
+            EventKind::SickOnset => self.fire_sick_onset(),
+            EventKind::SickDamage => self.fire_sick_damage(),
+            EventKind::HungerEmpty => self.fire_hunger_empty(),
+            EventKind::HappyEmpty => self.fire_happy_empty(),
+            EventKind::CareMiss => self.fire_care_miss(),
+            EventKind::Starve => self.fire_starve(),
+            // Phase 4: evolution branches and old age. Cleared so `advance_to`'s loop always
+            // terminates; `fire_hatch`/`fire_wake` schedule these anyway so
+            // `inspect().next_event_at` stays meaningful (and so a real handler landing later
+            // doesn't also need new scheduling call sites).
+            EventKind::Evolve | EventKind::OldAge => {
                 self.timers.clear(kind);
             }
         }
@@ -411,13 +413,59 @@ impl Cart {
                 if rising & buttons::A != 0 {
                     let next = (cursor + 1) % generated::icon::COUNT as u8;
                     self.open_menu(next);
+                } else if rising & buttons::B != 0 {
+                    self.timers.clear(EventKind::MenuTimeout);
+                    actions::select_menu_icon(self, cursor);
                 } else if rising & buttons::C != 0 {
                     self.ui = Ui::Idle;
                     self.timers.clear(EventKind::MenuTimeout);
                 }
-                // B (select an action) is Phase 3: no actions exist yet to select.
             }
-            _ => {} // other Ui variants are Phase 3+
+            Ui::FeedSub { snack } => {
+                if rising & buttons::A != 0 {
+                    self.ui = Ui::FeedSub { snack: !snack };
+                } else if rising & buttons::B != 0 {
+                    if snack {
+                        actions::feed_snack(self);
+                    } else {
+                        actions::feed_meal(self);
+                    }
+                } else if rising & buttons::C != 0 {
+                    self.ui = Ui::Idle;
+                }
+            }
+            Ui::Status { page } => {
+                if rising & buttons::A != 0 {
+                    self.ui = Ui::Status {
+                        page: (page + 1) % 5,
+                    };
+                } else if rising & buttons::C != 0 {
+                    self.ui = Ui::Idle;
+                }
+            }
+            Ui::Busy {
+                kind: BusyKind::Playing { .. },
+            } => {
+                if rising & buttons::A != 0 {
+                    actions::play_guess(self, false);
+                } else if rising & buttons::B != 0 {
+                    actions::play_guess(self, true);
+                } else if rising & buttons::C != 0 {
+                    self.ui = Ui::Idle;
+                    self.timers.clear(EventKind::UiBusyEnd);
+                }
+            }
+            Ui::Busy { .. } => {
+                // Eating/Refuse/Discipline/Result: a fixed-length animation, no input accepted
+                // except an early C to skip it (docs/GAME_DESIGN.md doesn't specify this; it's a
+                // reasonable UX default and never changes simulation state beyond what the
+                // action already applied).
+                if rising & buttons::C != 0 {
+                    self.ui = Ui::Idle;
+                    self.timers.clear(EventKind::UiBusyEnd);
+                }
+            }
+            Ui::Battle { .. } => {} // Phase 6
         }
     }
 
@@ -433,15 +481,47 @@ impl Cart {
     // --- rendering ------------------------------------------------------------------------
 
     fn desired_clip(&self) -> ClipId {
+        if self.state == CartState::Dead {
+            return ClipId::Dead;
+        }
         if self.state != CartState::Alive {
-            return ClipId::Idle; // Dead/Uninit: Phase 3 gives these their own clips
+            return ClipId::Main; // Uninit: never actually rendered (render_frame short-circuits)
         }
         if self.pet.stage == Stage::Egg {
             return ClipId::Egg;
         }
         match self.ui {
+            Ui::Busy {
+                kind: BusyKind::Eating { .. },
+            } => ClipId::Eating,
+            Ui::Busy {
+                kind: BusyKind::Refuse,
+            } => ClipId::Refuse,
+            Ui::Busy {
+                kind: BusyKind::Discipline,
+            } => ClipId::DisciplineBusy,
+            Ui::Busy {
+                kind: BusyKind::Result { .. },
+            } => ClipId::Result,
+            Ui::Busy {
+                kind: BusyKind::Playing { .. },
+            } => ClipId::Playing,
+            Ui::Busy {
+                kind: BusyKind::Evolving,
+            } => ClipId::Main, // Phase 4
             Ui::Menu { .. } => ClipId::Menu,
-            _ => ClipId::Idle,
+            Ui::FeedSub { .. } => ClipId::FeedSub,
+            Ui::Status { .. } => ClipId::Status,
+            Ui::Battle { .. } => ClipId::Main, // Phase 6
+            Ui::Idle => {
+                if self.pet.sick {
+                    ClipId::Sick
+                } else if self.pet.sleeping {
+                    ClipId::Sleeping
+                } else {
+                    ClipId::Main
+                }
+            }
         }
     }
 
@@ -453,7 +533,20 @@ impl Cart {
         }
     }
 
+    fn age_days(&self) -> u32 {
+        if self.pet.hatched_at == NEVER {
+            0
+        } else {
+            self.sim_now.saturating_sub(self.pet.hatched_at) / 86_400
+        }
+    }
+
     fn render_frame(&self, tick: u32) -> Fb {
+        use render::compose;
+
+        if self.state == CartState::Dead {
+            return compose::render_dead();
+        }
         if self.state != CartState::Alive {
             return Fb::new();
         }
@@ -464,14 +557,61 @@ impl Cart {
                 .timers
                 .get(EventKind::Hatch)
                 .saturating_sub(self.sim_now);
-            return render::compose::render_egg(egg_sprites, remaining, tick, &self.anim);
+            return compose::render_egg(egg_sprites, remaining, tick, &self.anim);
         }
+
+        let species = self.species_def();
+        let stage_set = self.stage_set(species);
+
         match self.ui {
-            Ui::Menu { cursor } => render::compose::render_menu(&generated::ICONS, cursor),
+            Ui::Menu { cursor } => compose::render_menu(&generated::ICONS, cursor),
+            Ui::FeedSub { snack } => compose::render_feed_sub(snack),
+            Ui::Status { page } => compose::render_status(
+                page,
+                self.pet.hunger.value_at(self.sim_now),
+                self.pet.happy.value_at(self.sim_now),
+                self.pet.discipline,
+                self.pet.health,
+                self.pet.sick,
+                self.age_days(),
+                self.pet.weight,
+            ),
+            Ui::Busy {
+                kind: BusyKind::Eating { snack },
+            } => compose::render_eating(stage_set, snack, tick, &self.anim),
+            Ui::Busy {
+                kind: BusyKind::Refuse,
+            } => compose::render_refuse(stage_set, tick, &self.anim),
+            Ui::Busy {
+                kind: BusyKind::Discipline,
+            } => compose::render_discipline_busy(stage_set, tick, &self.anim),
+            Ui::Busy {
+                kind: BusyKind::Result { won },
+            } => compose::render_result(stage_set, won, tick, &self.anim),
+            Ui::Busy {
+                kind: BusyKind::Playing { seq, round, .. },
+            } => compose::render_playing(stage_set, seq, round, tick, &self.anim),
             _ => {
-                let species = self.species_def();
-                let stage_set = self.stage_set(species);
-                render::compose::render_idle(stage_set, tick, &self.anim)
+                // Ui::Idle (sick/sleeping/plain), and Busy{Evolving}/Battle which are Phase 4/6
+                // stand-ins for Main until those systems exist.
+                if self.pet.sick {
+                    compose::render_sick(stage_set, tick)
+                } else if self.pet.sleeping {
+                    compose::render_sleeping(
+                        stage_set,
+                        self.pet.lights_off,
+                        self.pet.attention,
+                        tick,
+                    )
+                } else {
+                    compose::render_main(
+                        stage_set,
+                        self.pet.poops,
+                        self.pet.attention,
+                        tick,
+                        &self.anim,
+                    )
+                }
             }
         }
     }
@@ -490,6 +630,11 @@ impl Cart {
             Stage::Adult => &species.adult,
             Stage::AdultAlt => species.adult_alt.as_ref().unwrap_or(&species.adult),
         }
+    }
+
+    pub(crate) fn stage_rules(&self) -> StageRules {
+        let species = self.species_def();
+        self.stage_set(species).rules
     }
 }
 
@@ -591,5 +736,252 @@ mod tests {
         let err = cart.load(b"not a save blob at all").unwrap_err();
         assert_eq!(err, LoadError::BadMagic);
         assert_eq!(cart.pet, before);
+    }
+
+    // --- Phase 3: the care loop --------------------------------------------------------------
+
+    const START_MS: u64 = 1_700_000_000_000;
+
+    /// A freshly hatched baby, and the `now_ms` at the moment it hatched.
+    fn hatched(seed: u64) -> (Cart, u64) {
+        let mut cart = Cart::new_uninit();
+        cart.reset(START_MS, seed);
+        let hatch_ms = START_MS + 300_000;
+        cart.update(hatch_ms, 0);
+        assert_eq!(cart.pet.stage, Stage::Baby);
+        (cart, hatch_ms)
+    }
+
+    /// A brief press-and-release of `mask`, advancing `now_ms` by 200ms.
+    fn press(cart: &mut Cart, now_ms: &mut u64, mask: u8) {
+        *now_ms += 100;
+        cart.update(*now_ms, mask);
+        *now_ms += 100;
+        cart.update(*now_ms, 0);
+    }
+
+    /// Opens the menu and moves the cursor to `icon_index`.
+    fn open_menu_at(cart: &mut Cart, now_ms: &mut u64, icon_index: u8) {
+        press(cart, now_ms, buttons::A);
+        for _ in 0..icon_index {
+            press(cart, now_ms, buttons::A);
+        }
+    }
+
+    #[test]
+    fn feed_meal_refused_when_not_hungry_yet() {
+        let (mut cart, mut now) = hatched(1);
+        open_menu_at(&mut cart, &mut now, generated::icon::FEED as u8);
+        press(&mut cart, &mut now, buttons::B); // Feed -> FeedSub{snack: false}
+        assert_eq!(cart.ui, Ui::FeedSub { snack: false });
+        let hunger_before = cart.pet.hunger.value_at(cart.sim_now);
+        press(&mut cart, &mut now, buttons::B); // apply the meal
+        assert!(matches!(
+            cart.ui,
+            Ui::Busy {
+                kind: BusyKind::Refuse
+            }
+        ));
+        assert_eq!(cart.pet.hunger.value_at(cart.sim_now), hunger_before); // unchanged
+    }
+
+    #[test]
+    fn feed_meal_applied_once_hungry_enough() {
+        let (mut cart, mut now) = hatched(1);
+        // hunger_step_secs = 180 for baby; wait past the full_threshold (10).
+        now += 1_900_000; // ~31.7 min
+        cart.update(now, 0);
+        let hunger_before = cart.pet.hunger.value_at(cart.sim_now);
+        assert!(hunger_before >= 10);
+
+        open_menu_at(&mut cart, &mut now, generated::icon::FEED as u8);
+        press(&mut cart, &mut now, buttons::B); // FeedSub{snack:false}
+        press(&mut cart, &mut now, buttons::B); // apply
+        assert!(matches!(
+            cart.ui,
+            Ui::Busy {
+                kind: BusyKind::Eating { .. }
+            }
+        ));
+        assert!(cart.pet.hunger.value_at(cart.sim_now) < hunger_before);
+        assert_eq!(cart.pet.weight, 1 + generated::GAME.meal_weight);
+    }
+
+    #[test]
+    fn feed_snack_raises_happiness_and_weight() {
+        let (mut cart, mut now) = hatched(2);
+        let happy_before = cart.pet.happy.value_at(cart.sim_now);
+        open_menu_at(&mut cart, &mut now, generated::icon::FEED as u8);
+        press(&mut cart, &mut now, buttons::B); // FeedSub{snack:false}
+        press(&mut cart, &mut now, buttons::A); // toggle to snack
+        assert_eq!(cart.ui, Ui::FeedSub { snack: true });
+        press(&mut cart, &mut now, buttons::B); // apply the snack
+        assert!(matches!(
+            cart.ui,
+            Ui::Busy {
+                kind: BusyKind::Eating { .. }
+            }
+        ));
+        assert!(cart.pet.happy.value_at(cart.sim_now) >= happy_before);
+        assert_eq!(cart.pet.weight, 1 + generated::GAME.snack_weight);
+        assert_eq!(cart.pet.snacks_since_wake, 1);
+    }
+
+    #[test]
+    fn clean_refused_without_poop_applied_with_poop() {
+        let (mut cart, mut now) = hatched(3);
+        open_menu_at(&mut cart, &mut now, generated::icon::CLEAN as u8);
+        press(&mut cart, &mut now, buttons::B);
+        assert!(matches!(
+            cart.ui,
+            Ui::Busy {
+                kind: BusyKind::Refuse
+            }
+        ));
+        // Let the refuse animation finish before navigating the menu again.
+        now += 2_000;
+        cart.update(now, 0);
+        assert_eq!(cart.ui, Ui::Idle);
+
+        cart.pet.poops = 2; // simulate a poop having landed
+        open_menu_at(&mut cart, &mut now, generated::icon::CLEAN as u8);
+        press(&mut cart, &mut now, buttons::B);
+        assert_eq!(cart.pet.poops, 0);
+        assert_eq!(cart.ui, Ui::Idle);
+    }
+
+    #[test]
+    fn medicine_cures_sickness_and_penalizes_discipline_when_not_sick() {
+        let (mut cart, mut now) = hatched(4);
+        open_menu_at(&mut cart, &mut now, generated::icon::MEDICINE as u8);
+        press(&mut cart, &mut now, buttons::B);
+        assert_eq!(cart.pet.discipline, 0); // saturating_sub from 0 stays 0, but exercised
+        assert!(!cart.pet.sick);
+
+        cart.pet.sick = true;
+        cart.pet.health = 50;
+        open_menu_at(&mut cart, &mut now, generated::icon::MEDICINE as u8);
+        press(&mut cart, &mut now, buttons::B);
+        assert!(!cart.pet.sick);
+        assert_eq!(cart.pet.health, 50 + generated::GAME.medicine_health);
+        assert_eq!(cart.pet.sick_count, 1);
+    }
+
+    #[test]
+    fn discipline_without_a_tantrum_lowers_happiness() {
+        let (mut cart, mut now) = hatched(5);
+        let happy_before = cart.pet.happy.value_at(cart.sim_now);
+        open_menu_at(&mut cart, &mut now, generated::icon::DISCIPLINE as u8);
+        press(&mut cart, &mut now, buttons::B);
+        assert!(cart.pet.happy.value_at(cart.sim_now) < happy_before);
+    }
+
+    #[test]
+    fn play_session_scores_five_rounds_and_returns_to_idle() {
+        let (mut cart, mut now) = hatched(6);
+        open_menu_at(&mut cart, &mut now, generated::icon::PLAY as u8);
+        press(&mut cart, &mut now, buttons::B); // start playing
+        let seq = match cart.ui {
+            Ui::Busy {
+                kind: BusyKind::Playing { seq, .. },
+            } => seq,
+            other => panic!("expected Playing, got {other:?}"),
+        };
+        // Always guess correctly by reading the hidden sequence back.
+        for round in 0..5u8 {
+            let actual_right = (seq >> round) & 1 != 0;
+            press(
+                &mut cart,
+                &mut now,
+                if actual_right { buttons::B } else { buttons::A },
+            );
+        }
+        assert!(matches!(
+            cart.ui,
+            Ui::Busy {
+                kind: BusyKind::Result { .. }
+            }
+        ));
+        // Let the result animation finish.
+        now += 3_000;
+        cart.update(now, 0);
+        assert_eq!(cart.ui, Ui::Idle);
+    }
+
+    #[test]
+    fn lights_off_during_sleep_pauses_meters_and_wake_gives_a_health_bonus() {
+        let (mut cart, mut now) = hatched(7);
+        // Force Sleep to fire very soon rather than waiting out the full awake_secs (14h): a
+        // wait that long would also run into hunger/poop/sickness timers from the same neglect,
+        // which is exactly what tests::neglect_leads_to_starvation exercises on its own. This
+        // test wants Sleep/Wake/lights in isolation.
+        cart.timers
+            .set(EventKind::Sleep, cart.sim_now.saturating_add(5));
+        now += 6_000;
+        cart.update(now, 0);
+        assert!(cart.pet.sleeping);
+        assert_ne!(cart.pet.attention & pet::attention::SLEEPY, 0);
+
+        let hunger_at_sleep = cart.pet.hunger.value_at(cart.sim_now);
+        open_menu_at(&mut cart, &mut now, generated::icon::LIGHTS as u8);
+        press(&mut cart, &mut now, buttons::B);
+        assert!(cart.pet.lights_off);
+        assert_eq!(cart.pet.attention & pet::attention::SLEEPY, 0);
+
+        // Advance a while; a paused meter must not have moved.
+        now += 3_600_000;
+        cart.update(now, 0);
+        assert_eq!(cart.pet.hunger.value_at(cart.sim_now), hunger_at_sleep);
+
+        // Force Wake to fire soon too (sleep_secs is 36000s) and check the wake bonus.
+        cart.timers
+            .set(EventKind::Wake, cart.sim_now.saturating_add(5));
+        let health_before = cart.pet.health;
+        now += 6_000;
+        cart.update(now, 0);
+        assert!(!cart.pet.sleeping);
+        assert_eq!(
+            cart.pet.health,
+            (health_before + generated::GAME.wake_health_bonus).min(100)
+        );
+    }
+
+    #[test]
+    fn a_missed_attention_call_becomes_a_care_mistake() {
+        let (mut cart, mut now) = hatched(8);
+        assert_eq!(cart.pet.care_mistakes, 0);
+        // Isolate the hunger call from poop/happiness (which would otherwise also cross their
+        // own thresholds somewhere in a 15300s gap and add their own, correct, care mistakes).
+        cart.timers.clear(EventKind::Poop);
+        cart.timers.clear(EventKind::HappyEmpty);
+        cart.timers
+            .set(EventKind::HungerEmpty, cart.sim_now.saturating_add(5));
+        // The resulting CareMiss timer fires care_miss_secs (900s) later if never fed.
+        now += 5_000 + 900_000 + 1_000;
+        cart.update(now, 0);
+        assert_eq!(cart.pet.care_mistakes, 1);
+        assert_eq!(cart.pet.attention & pet::attention::HUNGRY, 0); // the call gave up
+    }
+
+    #[test]
+    fn neglect_leads_to_starvation() {
+        let (mut cart, mut now) = hatched(9);
+        // hunger reaches 100 at 100*180=18000s after hatch; Starve fires starve_secs (43200)
+        // later if it's never fed in the meantime.
+        now += 18_000_000 + 43_200_000 + 60_000;
+        cart.update(now, 0);
+        assert_eq!(cart.state, CartState::Dead);
+        assert_eq!(cart.pet.death_cause, pet::DeathCause::Starvation as u8);
+        assert_eq!(cart.timers.earliest(), None);
+    }
+
+    #[test]
+    fn a_dead_pet_ignores_further_input() {
+        let (mut cart, mut now) = hatched(10);
+        now += 18_000_000 + 43_200_000 + 60_000;
+        cart.update(now, 0);
+        assert_eq!(cart.state, CartState::Dead);
+        press(&mut cart, &mut now, buttons::A);
+        assert_eq!(cart.ui, Ui::Idle);
     }
 }

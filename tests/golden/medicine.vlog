@@ -1,0 +1,17 @@
+# medicine.vlog: giving medicine while not sick costs discipline (the cure
+# branch needs the pet to actually be sick first, exercised as a unit test
+# instead since forcing that state doesn't fit the .vlog grammar).
+reset 1700000000000 seed=5
+t 1700000301000 -
+snap hatched
+t 1700000301100 A
+t 1700000301200 -
+t 1700000301300 A
+t 1700000301400 -
+t 1700000301500 A
+t 1700000301600 -
+t 1700000301700 A
+t 1700000301800 -
+t 1700000301900 B
+t 1700000302000 -
+snap discipline_penalty
