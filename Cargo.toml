@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/vpet-core", "crates/vpet-abi", "crates/vpet-cli"]
+members = ["crates/vpet-core", "crates/vpet-abi", "crates/vpet-cli", "hosts/server"]
 # vpet-abi only ever makes sense built for wasm32-unknown-unknown (`just wasm`/`just size`/
 # `just imports`, or `cargo build -p vpet-abi --target wasm32-unknown-unknown`): it's a
 # `no_std`, no-libc cdylib, and there is no libc to link against for a *native* cdylib build of
@@ -9,10 +9,11 @@ members = ["crates/vpet-core", "crates/vpet-abi", "crates/vpet-cli"]
 # test` (what the justfile's `test`/`clippy` recipes use) working without an explicit --target;
 # `cargo build -p vpet-abi ...` and `cargo build --workspace --target wasm32-unknown-unknown`
 # still reach it explicitly.
-default-members = ["crates/vpet-core", "crates/vpet-cli"]
+default-members = ["crates/vpet-core", "crates/vpet-cli", "hosts/server"]
 
-# hosts/server joins this workspace in a later phase (it links vpet-core to validate blobs).
-# hosts/esp32 stays a separate Cargo workspace (its own toolchain; see docs/ARCHITECTURE.md).
+# hosts/server links vpet-core natively to validate blobs (docs/SYNC.md); it builds and tests
+# with the default members. hosts/esp32 stays a separate Cargo workspace (its own toolchain;
+# see docs/ARCHITECTURE.md).
 
 [workspace.package]
 edition = "2021"

@@ -43,6 +43,10 @@ wasm-dev:
     mkdir -p hosts/web/public
     cp target/wasm32-unknown-unknown/debug/vpet_abi.wasm hosts/web/public/vpet-dev.wasm
 
+# docs/hosts/server.md: the blob store, locally, with a throwaway token (override VPET_TOKEN).
+server:
+    VPET_TOKEN="${VPET_TOKEN:-dev}" cargo run -p vpet-server
+
 art-check:
     cd tools/spritekit && uv run spritekit validate --all
     cd tools/spritekit && uv run spritekit compile --check

@@ -1,0 +1,25 @@
+[package]
+name = "vpet-server"
+version = "0.1.0"
+edition.workspace = true
+description = "vpet blob store: one save per pet, last-writer-wins by simulated time (docs/SYNC.md)"
+
+[[bin]]
+name = "vpet-server"
+path = "src/main.rs"
+
+[dependencies]
+vpet-core = { path = "../../crates/vpet-core" }
+axum = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "sync", "net"] }
+tower-http = { version = "0.6", features = ["cors"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+time = { version = "0.3", features = ["formatting"] }
+subtle = "2"
+
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+tempfile = "3"
