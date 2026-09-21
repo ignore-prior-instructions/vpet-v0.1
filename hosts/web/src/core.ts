@@ -4,7 +4,7 @@
 
 import { decodeInspect, type Inspect } from "./inspect";
 
-export const ABI_VERSION = 2; // 64x32 frames (docs/adr/0016-screen-64x32.md)
+export const ABI_VERSION = 3; // 64x32 frames (ADR 0016) + vpet_peek_sim_now (docs/SYNC.md)
 
 /** Mirrors `vpet_core::buttons` (crates/vpet-core/src/lib.rs). */
 export const Buttons = {
@@ -49,6 +49,7 @@ interface VpetExports {
   vpet_save(): number;
   vpet_update(nowMs: bigint, buttons: number): number;
   vpet_inspect(): number;
+  vpet_peek_sim_now(len: number): number;
 }
 
 export class Core {
@@ -124,5 +125,14 @@ export class Core {
   inspect(): Inspect {
     const len = this.exports.vpet_inspect();
     return decodeInspect(this.ioView, len);
+  }
+
+  /** The `sim_now` inside `blob` without loading it (docs/SYNC.md: compare candidates, load
+   * only the winner). `null` if the blob does not parse. */
+  peekSimNow(blob: Uint8Array): number | null {
+    if (blob.length > IO_CAP) return null;
+    this.ioView.set(blob, 0);
+    const v = this.exports.vpet_peek_sim_now(blob.length) >>> 0;
+    return v === 0xffffffff ? null : v;
   }
 }

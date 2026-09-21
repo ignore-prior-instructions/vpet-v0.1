@@ -1,18 +1,23 @@
-// Host flow: docs/HOST_ABI.md "Host flow", docs/hosts/web.md. This file wires the modules
-// together and owns policy (when to save, when to log, when to show the dev panel); it never
-// draws a sprite or decides what the screen shows (CLAUDE.md "Hosts are dumb blitters" —
-// everything about *what* to draw comes from `core.frame()`/`core.inspect()`).
+// Host flow: docs/HOST_ABI.md "Host flow", docs/hosts/web.md, docs/SYNC.md "Client protocol".
+// This file wires the modules together and owns policy (when to save, when to sync, when to
+// log, when to show the dev panel); it never draws a sprite or decides what the screen shows
+// (CLAUDE.md "Hosts are dumb blitters" — everything about *what* to draw comes from
+// `core.frame()`/`core.inspect()`).
 
 import { Core, Flags, loadErrorName, LoadError } from "./core";
 import { blit, type Theme } from "./blit";
 import { Input } from "./input";
 import * as persist from "./persist";
 import { mountDevPanel, type DevPanel } from "./devpanel";
+import { mountSettings, type SettingsSheet } from "./settings";
+import { getSettings, isConfigured, pickNewest, SyncClient, SyncNetworkError, type SyncSettings } from "./sync";
 import { Recorder } from "./vlog";
 
 const TICK_MS = 100;
 const SAVE_DEBOUNCE_MS = 500;
+const PUSH_DEBOUNCE_MS = 2_000;
 const CHECKPOINT_MS = 30_000;
+const PULL_TIMEOUT_MS = 5_000;
 
 function randomSeed(): bigint {
   const buf = new Uint32Array(2);
@@ -44,6 +49,14 @@ function beep(): void {
   }
 }
 
+function relative(ms: number): string {
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 5) return "just now";
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  return `${Math.round(s / 3600)} h ago`;
+}
+
 async function main(): Promise<void> {
   const canvas = document.getElementById("screen") as HTMLCanvasElement;
   const ctx = canvas.getContext("2d");
@@ -55,6 +68,9 @@ async function main(): Promise<void> {
   const buttonB = document.getElementById("btn-b") as HTMLElement;
   const buttonC = document.getElementById("btn-c") as HTMLElement;
   const devPanelEl = document.getElementById("devpanel") as HTMLElement;
+  const settingsEl = document.getElementById("settings") as HTMLElement;
+  const gearEl = document.getElementById("gear") as HTMLElement;
+  const syncDotEl = document.getElementById("syncdot") as HTMLElement;
 
   let theme: Theme = persist.getTheme();
   document.body.dataset.theme = theme;
@@ -63,15 +79,31 @@ async function main(): Promise<void> {
   const input = new Input({ a: buttonA, b: buttonB, c: buttonC });
   const recorder = new Recorder();
 
-  let saveTimer: ReturnType<typeof setTimeout> | null = null;
-  let lastLoggedMask = -1; // force the first `t` line to be logged
+  // --- sync state ----------------------------------------------------------------------------
+  let settings: SyncSettings = getSettings();
+  let client: SyncClient | null = isConfigured(settings) ? new SyncClient(settings) : null;
+  let lastSyncedAt: number | null = null;
+  let sheet: SettingsSheet;
 
-  function saveNow(): void {
+  function status(text: string, level: "off" | "ok" | "warn" | "error"): void {
+    sheet?.setStatus(text, level);
+  }
+  function statusSynced(): void {
+    lastSyncedAt = Date.now();
+    status(`synced ${relative(lastSyncedAt)}`, "ok");
+  }
+
+  // --- local save ----------------------------------------------------------------------------
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  let pushTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function saveNow(): Uint8Array | null {
     const blob = core.save();
     if (blob) {
       persist.putBlob(blob).catch((e) => console.error("persist.putBlob failed", e));
       recorder.save();
     }
+    return blob;
   }
 
   function scheduleSave(): void {
@@ -82,7 +114,88 @@ async function main(): Promise<void> {
     }, SAVE_DEBOUNCE_MS);
   }
 
-  // Boot: load a stored blob if one exists; otherwise start a fresh egg.
+  // --- sync: adopt / push / pull -------------------------------------------------------------
+
+  /** Load `blob` as the live pet (it won the sim_now comparison) and persist it locally. */
+  function adopt(blob: Uint8Array, why: string): boolean {
+    const rc = core.load(blob);
+    if (rc !== 0) {
+      console.warn(`adopting the server save failed (${loadErrorName(rc)})`);
+      status(`server save could not be loaded (${loadErrorName(rc)})`, "error");
+      return false;
+    }
+    persist.putBlob(blob).catch((e) => console.error("persist.putBlob failed", e));
+    tick();
+    status(why, "warn");
+    return true;
+  }
+
+  async function pushNow(keepalive = false): Promise<void> {
+    if (!client) return;
+    const blob = core.save();
+    if (!blob) return;
+    const simNow = core.peekSimNow(blob);
+    if (simNow === null) return;
+    try {
+      const result = await client.push(blob, simNow, keepalive);
+      if (result.kind === "ok") {
+        statusSynced();
+      } else if (result.kind === "conflict") {
+        const mine = core.peekSimNow(core.save() ?? blob) ?? simNow;
+        if (result.remote.simNow > mine) {
+          adopt(result.remote.blob, "adopted the newer save from the server");
+          lastSyncedAt = Date.now();
+        } else {
+          schedulePush(); // the compare was racy; try again with our now-current blob
+        }
+      } else {
+        status(result.versionTooNew ? "server needs updating; playing locally" : `server rejected the save: ${result.message}`, "error");
+      }
+    } catch (e) {
+      status(e instanceof SyncNetworkError ? "offline, playing locally" : `sync error: ${(e as Error).message}`, "warn");
+    }
+  }
+
+  function schedulePush(): void {
+    if (!client || pushTimer !== null) return;
+    pushTimer = setTimeout(() => {
+      pushTimer = null;
+      void pushNow();
+    }, PUSH_DEBOUNCE_MS);
+  }
+
+  /** docs/SYNC.md "on open / visible": compare the local pet with the server's and keep the
+   * one that simulated furthest; push if ours won, adopt if theirs did. */
+  async function pullAndReconcile(): Promise<void> {
+    if (!client) {
+      status("sync off", "off");
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), PULL_TIMEOUT_MS);
+    try {
+      const remote = await client.pull(controller.signal);
+      const localBlob = core.save();
+      const local = localBlob ? { blob: localBlob, simNow: core.peekSimNow(localBlob) ?? 0 } : null;
+      const best = pickNewest([local, remote]);
+      if (!best) return;
+      if (remote && best === remote && (!local || remote.simNow > local.simNow)) {
+        adopt(remote.blob, "adopted the newer save from the server");
+        lastSyncedAt = Date.now(); // the status line keeps saying "adopted" until the next push
+      } else if (!remote || (local && local.simNow > remote.simNow)) {
+        await pushNow();
+      } else {
+        statusSynced(); // equal: nothing to do
+      }
+    } catch (e) {
+      status(e instanceof SyncNetworkError ? "offline, playing locally" : `sync error: ${(e as Error).message}`, "warn");
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  // --- boot ---------------------------------------------------------------------------------
+  // Load a stored blob if one exists; otherwise start a fresh egg.
   // A recording is only a complete, replayable .vlog when the session began with `reset` (no
   // stored blob) — the recorder has no way to represent "start from an arbitrary loaded state"
   // in the .vlog grammar, which always opens with `reset`.
@@ -107,6 +220,27 @@ async function main(): Promise<void> {
     recorder.reset(n, seed);
   }
 
+  sheet = mountSettings(settingsEl, gearEl, syncDotEl, {
+    onSaved(s) {
+      settings = s;
+      client = isConfigured(s) ? new SyncClient(s) : null;
+      void pullAndReconcile();
+    },
+    onSyncNow() {
+      void pullAndReconcile();
+    },
+    onStartOver() {
+      if (!client) return;
+      client
+        .remove()
+        .then(() => {
+          status("server copy deleted; will upload this pet on the next change", "warn");
+          schedulePush();
+        })
+        .catch((e) => status(`could not delete: ${(e as Error).message}`, "error"));
+    },
+  });
+
   let devPanel: DevPanel | null = null;
   if (isDevMode()) {
     devPanelEl.hidden = false;
@@ -125,6 +259,8 @@ async function main(): Promise<void> {
     });
   }
 
+  let lastLoggedMask = -1; // force the first `t` line to be logged
+
   function tick(): void {
     const n = now();
     const mask = input.mask();
@@ -140,6 +276,7 @@ async function main(): Promise<void> {
     }
     if (flags & Flags.SAVE_NEEDED) {
       scheduleSave();
+      schedulePush();
     }
     if (flags & Flags.BEEP) {
       beep();
@@ -158,12 +295,24 @@ async function main(): Promise<void> {
   blit(ctx, core.frame(), theme);
   tick();
   setInterval(tick, TICK_MS);
-  setInterval(saveNow, CHECKPOINT_MS);
+  setInterval(() => {
+    saveNow();
+    if (lastSyncedAt !== null) status(`synced ${relative(lastSyncedAt)}`, "ok");
+  }, CHECKPOINT_MS);
+
+  // The pull happens after the first paint so a slow server never delays the pet appearing.
+  void pullAndReconcile();
 
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") tick();
+    if (document.visibilityState === "visible") {
+      tick();
+      void pullAndReconcile();
+    }
   });
-  window.addEventListener("pagehide", saveNow);
+  window.addEventListener("pagehide", () => {
+    saveNow();
+    void pushNow(true);
+  });
 }
 
 main().catch((e) => {

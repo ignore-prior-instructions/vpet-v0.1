@@ -11,12 +11,15 @@
     <div id="bezel">
       <canvas id="screen" width="64" height="32"></canvas>
       <div id="attention"></div>
+      <button id="gear" type="button" aria-label="Sync settings" title="Sync settings">⚙</button>
+      <span id="syncdot" data-level="off" title="sync off"></span>
     </div>
     <div id="buttons">
       <button id="btn-a">A</button>
       <button id="btn-b">B</button>
       <button id="btn-c">C</button>
     </div>
+    <div id="settings" hidden></div>
     <div id="devpanel" hidden></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

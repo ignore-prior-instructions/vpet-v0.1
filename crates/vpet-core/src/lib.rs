@@ -35,8 +35,8 @@ use ui::{BusyKind, Ui};
 
 /// Bumps on any change to exports, buffer sizes, frame format, flag bits, error codes, or
 /// `Inspect` (docs/HOST_ABI.md "Versioning"). 2: the frame became 64x32 / 256 bytes
-/// (docs/adr/0016-screen-64x32.md).
-pub const ABI_VERSION: u32 = 2;
+/// (docs/adr/0016-screen-64x32.md). 3: `vpet_peek_sim_now` export (docs/SYNC.md).
+pub const ABI_VERSION: u32 = 3;
 
 pub mod buttons {
     pub const A: u8 = 1 << 0;
@@ -814,6 +814,24 @@ mod tests {
         assert_eq!(cart2.pet, cart.pet);
         assert_eq!(cart2.timers, cart.timers);
         assert_eq!(cart2.ui, cart.ui);
+    }
+
+    #[test]
+    fn peek_sim_now_reads_a_blob_without_loading_it() {
+        let mut cart = Cart::new_uninit();
+        cart.reset(1_700_000_000_000, 42);
+        cart.update(1_700_000_000_000 + 400_000, 0);
+        let mut scratch = [0u8; 512];
+        let mut blob = [0u8; 512];
+        let len = cart.save(&mut scratch, &mut blob).unwrap();
+        assert_eq!(
+            save::peek_sim_now(&blob[..len]).unwrap(),
+            cart.inspect().sim_now
+        );
+        assert_eq!(save::peek_sim_now(b"not a blob"), Err(LoadError::BadMagic));
+        let mut corrupt = blob;
+        corrupt[20] ^= 0xFF;
+        assert_eq!(save::peek_sim_now(&corrupt[..len]), Err(LoadError::BadCrc));
     }
 
     #[test]

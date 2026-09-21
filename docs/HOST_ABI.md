@@ -27,6 +27,7 @@ uint32_t       vpet_inspect(void);
 | `vpet_save()` | Writes the current blob into IO and returns its length. 0 means Uninit. |
 | `vpet_update(now_ms, buttons)` | Advance to `now_ms`, apply input, render. Returns flags. |
 | `vpet_inspect()` | Writes the `Inspect` struct into IO and returns its length. |
+| `vpet_peek_sim_now(len)` | Host has copied a blob of `len` bytes into IO. Returns its `sim_now` without loading it, or `0xFFFFFFFF` if it does not parse. For choosing between a local and a server save ([SYNC.md](SYNC.md)); ABI v3. |
 
 ## Memory convention
 
