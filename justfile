@@ -35,6 +35,7 @@ imports: wasm
 
 art-check:
     cd tools/spritekit && uv run spritekit validate --all
+    cd tools/spritekit && uv run spritekit compile --check
 
 golden:
     cargo run -p vpet-cli -- replay tests/golden/*.vlog

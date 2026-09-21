@@ -145,13 +145,14 @@ impl Cart {
     // --- host-facing API (mirrors docs/HOST_ABI.md's exports) ---------------------------------
 
     /// Start a new egg at `now_ms`. `seed` is host entropy. Species is the registry default
-    /// (id 0); a reset-with-species variant is future ABI work (docs/HOST_ABI.md).
+    /// (the first entry of `generated::SPECIES`); a reset-with-species variant is future ABI
+    /// work (docs/HOST_ABI.md).
     pub fn reset(&mut self, now_ms: u64, seed: u64) {
         let now = time::ms_to_sec(now_ms);
         self.state = CartState::Alive;
         self.sim_now = now;
         self.rng = Rng::seed_from_u64(seed).state();
-        self.pet = Pet::new_egg(0, now);
+        self.pet = Pet::new_egg(generated::SPECIES[0].id, now);
         self.timers = Timers::new();
         let hatch_secs = self.species_def().hatch_secs;
         self.timers

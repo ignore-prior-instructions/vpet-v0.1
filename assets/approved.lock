@@ -1,2 +1,20 @@
-# sha256 per approved pose, written by `spritekit approve`. CI fails if an approved pose changes
-# without re-approval (docs/art/ART_PIPELINE.md). Empty until the first species exists (Phase 3).
+# sha256 per approved pose, written by `spritekit approve`. CI fails if an approved pose
+# changes without re-approval (docs/art/ART_PIPELINE.md).
+"lalafu/adult/eat" = "sha256:6e39414683752098ef9f6571f75186130d4b03b6496c300b5f5474ed9d0d4c37"
+"lalafu/adult/happy" = "sha256:0a2bcf291bb80527caad1d1d66317648f232dee38d53b7776993908a2bce17fe"
+"lalafu/adult/idle_a" = "sha256:93b33237e33c6172658c935f80a5755217f03c8852cf728acac0a680a2eec5b8"
+"lalafu/adult/idle_b" = "sha256:bcb00677461a21ad2bc20ed5af02d4cf95cf892b6e1d9fd48a2ad10db8b3f40a"
+"lalafu/adult/sad" = "sha256:607bea2ade3704b67b6d09dbc0fa024e8223146138ab5e6cb5d131412c4af4b8"
+"lalafu/adult/sleep" = "sha256:e347ee20c85052db7e5fe7da56cb955fd79a9ff3011bcb42dab242efe4aa773c"
+"lalafu/baby/eat" = "sha256:145bb5fd4707550cecc499e258793bfd1da32bb0f054bd770e3db35ce647075f"
+"lalafu/baby/happy" = "sha256:55450b0b081ca79021a4b6ab7e4790b6e5de2517dd2933095720eea5ab8be5e2"
+"lalafu/baby/idle_a" = "sha256:ae2856c51f3b9130c9d895697cd7a0e7714efa3af5e0450ba9392af223cf6a4d"
+"lalafu/baby/idle_b" = "sha256:2f55cf1aa1a9cb79ae642d2f4f74c2258f41c7ddcf1e0df704071f25d4a8e622"
+"lalafu/baby/sad" = "sha256:469ea1bdaeb2126f4955c7f6eb33d6dc959baed47e11b2d0980121cc7ec2f484"
+"lalafu/baby/sleep" = "sha256:ebc390e5694d9e496d5320ae99c787c98f330d70a72ddc2d83c97311e3be404e"
+"lalafu/child/eat" = "sha256:f31a9b6d61a24dc5df1bb6e0d5ddecd388520d3f9ef2b8ba8c30dcdac3b5a795"
+"lalafu/child/happy" = "sha256:076bf0187835151d14fc49886053c8b25719aa176ecb8ed308ecb52bc1773bd1"
+"lalafu/child/idle_a" = "sha256:e77ab975af19c1db250a07236e9eaa1f31a242a476d5ea39fc72a6e6a40a3caa"
+"lalafu/child/idle_b" = "sha256:680292d9cd1feb614537cb8986d7dcdf2051e14fd1652c05ad25c0e79b9bcea4"
+"lalafu/child/sad" = "sha256:b49b4678a8aa3eb15e93f682840dfc2366ff3002ad52b310f94effa0e38f29d7"
+"lalafu/child/sleep" = "sha256:f3fb0746fd706ca93ff518d8623701a7ae2a1b33ec3dc113aed54d79273d7a9f"
