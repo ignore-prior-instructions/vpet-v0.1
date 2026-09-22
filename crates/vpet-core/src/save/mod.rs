@@ -93,6 +93,18 @@ pub fn read_header_and_payload(blob: &[u8]) -> Result<(Header, &[u8]), LoadError
     ))
 }
 
+/// The `sim_now` inside `blob`, without loading it into any `Cart`: header and CRC verified,
+/// payload decoded by version. Hosts use it to compare candidate saves (local vs server,
+/// docs/SYNC.md) and then load only the one that simulated furthest, so a stale remote can
+/// never clobber the live pet on the way to being inspected.
+pub fn peek_sim_now(blob: &[u8]) -> Result<crate::time::Sec, LoadError> {
+    let (header, payload) = read_header_and_payload(blob)?;
+    if header.save_version > v1::SAVE_VERSION {
+        return Err(LoadError::VersionTooNew);
+    }
+    Ok(v1::decode(payload)?.sim_now)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

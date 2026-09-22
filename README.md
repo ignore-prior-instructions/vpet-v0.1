@@ -33,11 +33,12 @@ cargo run -p vpet-cli -- play                    # terminal: a/b/c + Enter, + sk
 
 ## Status
 
-Phases 0 to 4 of [docs/ROADMAP.md](docs/ROADMAP.md) are done: the full care loop, one species
+Phases 0 to 5 of [docs/ROADMAP.md](docs/ROADMAP.md) are done: the full care loop, one species
 (lalafu) with both adult forms, evolution, old age, death and restart, the content pipeline
-with hot preview, 16 golden replays, five property tests, and native-vs-wasm parity in CI.
-Next: Phase 5 (sync server), Phase 6 (battle, more species), Phase 7 (ESP32). Start with
-[docs/README.md](docs/README.md).
+with hot preview, 16 golden replays, five property tests, native-vs-wasm parity in CI, and
+multi-device sync (an axum blob store plus a browser client behind the gear icon; the server
+is built and Dockerised but not hosted yet). Next: Phase 6 (battle, more species), Phase 7
+(ESP32). Start with [docs/README.md](docs/README.md).
 
 ## Developing
 
@@ -55,10 +56,10 @@ Needs: Rust stable with the `wasm32-unknown-unknown` target, `wasm-opt` (binarye
 
 ```
 crates/vpet-core     no_std simulation + renderer + compiled-in assets (the cartridge)
-crates/vpet-abi      8 extern "C" exports; cdylib for wasm32 (+ dev_* exports behind `dev-overrides`)
+crates/vpet-abi      9 extern "C" exports; cdylib for wasm32 (+ dev_* exports behind `dev-overrides`)
 crates/vpet-cli      replay / play / autoplay / parity / dump; the test oracle
 hosts/web            Vite + plain TypeScript + canvas; /dev/sprites hot preview
-hosts/server         axum blob store (persistence + multi-device sync) -- Phase 5
+hosts/server         axum blob store (persistence + multi-device sync); Dockerfile, not hosted yet
 hosts/esp32          esp-idf host: SSD1306 over I2C, three buttons, NVS -- Phase 7
 assets/              species definitions and text-grid sprites
 tools/spritekit      Python art tooling: validate, render, compile, approve, gen, dev-fixture

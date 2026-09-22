@@ -32,8 +32,8 @@ green as an option) are applied when filling the `ImageData`. Sixty-four bytes i
 a display that changes at 4 Hz, and it pauses in background tabs. Ten Hz gives button latency
 under 100 ms; the core is designed for any call rate.
 
-- `visibilitychange` to visible: pull from the server, then call `update` immediately so the
-  fast-forward happens before the first paint.
+- `visibilitychange` to visible: call `update` immediately so the fast-forward happens before
+  the first paint, then pull from the server and reconcile (below).
 - `pagehide`: save and push with `fetch(url, { keepalive: true })`.
 
 ## Buttons
@@ -48,6 +48,38 @@ the held mask; `pointercancel` and `blur` clear it. Touch works without special 
 - localStorage only for host settings: server URL, token, pet id, theme, dev clock offset.
 - Save on `SAVE_NEEDED` debounced 500 ms, a checkpoint every 30 s, and on `pagehide`.
 - Server sync as in [SYNC.md](../SYNC.md), debounced 2 s for pushes.
+
+## Sync
+
+`src/sync.ts` is the [SYNC.md](../SYNC.md) client protocol with no game logic: settings in
+localStorage (`vpet.sync.url`, `.token`, `.petId`; an empty URL means sync off), `pull()`,
+`push(blob, simNow, keepalive)` and `remove()`. `src/main.ts` owns the policy:
+
+- **Boot**: the stored blob (or a fresh egg) is loaded and painted first; only then does the
+  page pull, so a slow server never delays the pet appearing. The pull has a 5 s timeout.
+- **Reconcile** (boot, tab becomes visible, "Save" or "Sync now" in the sheet): compare the
+  local blob's `sim_now` with the server's using `vpet_peek_sim_now` -- the candidate is never
+  loaded into the live core just to inspect it, so a stale remote can't clobber the pet. If the
+  server's is higher, load it, store it, and say so; if ours is higher or the server has
+  nothing, push; if equal, nothing.
+- **Push** on `SAVE_NEEDED`, debounced 2 s, with the blob as it is when the timer fires; on
+  `pagehide` with `keepalive`. A 409 carries the server's blob: adopt it if its `sim_now` is
+  higher, otherwise push again with the now-current blob.
+- Any network failure leaves the pet playing locally; a 422 `VERSION_TOO_NEW` means the server
+  binary needs rebuilding and is reported as such.
+
+The core never moves time backwards, so a browser that adopts a blob from further ahead holds
+at that `sim_now` until its own clock catches up (see `advance_to` in `vpet-core`).
+
+## Settings sheet
+
+The gear in the bezel corner (no `?dev` needed, phone-friendly) opens a sheet with the server
+URL, token (password field), pet id, **Save** (which reconciles at once), **Sync now**,
+**Start over on server** (`DELETE` behind a confirm dialog; the local pet is kept and uploaded
+on its next change) and a status line: `sync off`, `synced <n>s ago`, `offline, playing
+locally`, `adopted the newer save from the server`, `server needs updating; playing locally`.
+The dot next to the gear mirrors the status level (`data-level` off / ok / warn / error) and
+carries the same text as its `title`.
 
 ## Dev panel
 

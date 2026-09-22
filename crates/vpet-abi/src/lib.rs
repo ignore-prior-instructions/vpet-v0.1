@@ -186,6 +186,22 @@ pub extern "C" fn vpet_inspect() -> u32 {
     bytes.len() as u32
 }
 
+/// `vpet_peek_sim_now(len)`: the `sim_now` inside the blob the host copied into IO, without
+/// loading it (docs/SYNC.md: compare candidates, then load only the one that simulated
+/// furthest). Returns `u32::MAX` if the blob does not parse (bad magic/CRC/decode, too new).
+#[no_mangle]
+pub extern "C" fn vpet_peek_sim_now(len: u32) -> u32 {
+    // SAFETY: see sync_frame; IO is read-only here.
+    let blob: &[u8] = unsafe {
+        let io = &*addr_of!(IO);
+        match io.get(0..len as usize) {
+            Some(b) => b,
+            None => return u32::MAX,
+        }
+    };
+    vpet_core::save::peek_sim_now(blob).unwrap_or(u32::MAX)
+}
+
 #[cfg(all(not(test), not(feature = "dev-overrides"), target_arch = "wasm32"))]
 #[panic_handler]
 fn panic(_info: &core::panic::PanicInfo) -> ! {
