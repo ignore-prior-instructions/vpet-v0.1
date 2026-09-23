@@ -6,6 +6,8 @@
 2. [GAME_DESIGN.md](GAME_DESIGN.md): the game itself. Lifecycle, needs, actions, evolution, battle.
 3. [ARCHITECTURE.md](ARCHITECTURE.md): the cartridge model, the hosts, the repo map.
 4. [ROADMAP.md](ROADMAP.md): the phases and what "done" means for each.
+5. [NEXT.md](NEXT.md): the open threads right now, each with a starting point. Read this
+   before picking up new work.
 
 Then the technical specs, in dependency order:
 

@@ -358,6 +358,10 @@ def compile_source(assets_root: Path, spec: Spec, allow_unapproved: bool = False
     tombstone_sprite = tombstone_gf.sprites[0]
     tombstone_str = em.sprite_literal(tombstone_sprite, tombstone_gf.cell_w, tombstone_gf.cell_h)
 
+    hatch_gf = _load_global(assets_root, "hatch")
+    hatch_sprite = hatch_gf.sprites[0]
+    hatch_str = em.sprite_literal(hatch_sprite, hatch_gf.cell_w, hatch_gf.cell_h)
+
     hearts_gf = _load_global(assets_root, "hearts")
     heart_by_name = {s.name: s for s in hearts_gf.sprites}
     hearts_str = ",\n    ".join(
@@ -390,6 +394,7 @@ def compile_source(assets_root: Path, spec: Spec, allow_unapproved: bool = False
     out.append(f"\npub static ITEMS: [Sprite; {len(item_names)}] = [\n    {items_str},\n];\n")
     out.append(_item_module(item_names))
     out.append(f"\npub static TOMBSTONE: Sprite = {tombstone_str};\n")
+    out.append(f"\npub static HATCH: Sprite = {hatch_str};\n")
     out.append(f"\npub static HEARTS: [Sprite; 2] = [\n    {hearts_str},\n];\n")
     out.append(
         "pub mod heart {\n    pub const FULL: usize = 0;\n    pub const EMPTY: usize = 1;\n}\n"

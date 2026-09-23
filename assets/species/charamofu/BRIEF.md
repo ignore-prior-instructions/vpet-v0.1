@@ -1,7 +1,8 @@
 # charamofu
 
-A small side-view dinosaur: a long snout, one visible eye, small back spines, stubby legs,
-facing right. The adult a neglected child grows into: five or more care mistakes
+A small side-view dinosaur: a long snout, one visible eye, small back spines, stubby legs.
+Sketched facing right; stored mirrored (facing left) because unflipped art faces left in this
+engine, so it walks and fights facing the way it moves (`docs/art/ANIMATION.md` `walk`). The adult a neglected child grows into: five or more care mistakes
 (`docs/GAME_DESIGN.md` "Evolution", `docs/art/LINEAGE.md`); the "bad care" outcome, hungrier,
 poops more, shorter lifespan.
 

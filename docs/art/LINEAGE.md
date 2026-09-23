@@ -20,7 +20,7 @@ stroke and each sketch lands inside its stage's bounding-box band without redraw
 |---|---|---|---|---|
 | `lalafu` | 1 | ghost with a bow | pink, red bow, blue bow tie | 14 (droop), byte-identical to `lalafu.json`'s idle frame |
 | `ninjifu` | 3 | cute ninja: masked, hooded, two tall pointed ears/hood-points | purple, happy closed eyes | 1, byte-identical to `ninjifu.json`'s idle frame |
-| `charamofu` | 2 | small dinosaur, side view | orange, green spines | 12, byte-identical to `charamofu.json`'s idle frame |
+| `charamofu` | 2 | small dinosaur, side view (sketched facing right; stored mirrored, see below) | orange, green spines | 12, byte-identical to `charamofu.json`'s idle frame, mirrored |
 
 v0 shipped only a `Baby` stage with an `Idle` animation per species. Lalafu's idle was 17
 frames: the same drawing translated across the screen and mirrored, which is now the `walk` and
@@ -68,8 +68,9 @@ had 7-10 as more ghost poses, which read as "I don't see the ghost" once rendere
   other arm up, an arms-up happy (with a heart), and an open-mouth eat. `idle_a`/`idle_b`,
   `happy`, `eat` drawn from these; `sleep`, `sad`, `attack` derived by hand.
 - Two spotted egg frames, different from v0's plain egg.
-- One scribbled burst with a face inside it (`Untitled_Artwork.png`), unmapped. Possibly a hatch
-  or evolve effect for later.
+- One scribbled burst with a face inside it (`Untitled_Artwork.png`): the hatch. It plays as a
+  two-second flash where the egg was (`assets/global/hatch.txt`, `docs/art/ANIMATION.md`
+  "Hatch"); at 2x it is 38 px, so the outer 3 px of ray tips are trimmed to fit the cell.
 
 Sizes step up cleanly, blob 7x6, hooded kid 13-14 wide, ghost 11x13, ninja 13x15, dino 15x13.
 
@@ -280,6 +281,10 @@ below): this is the one child stage every route passes through, not the ghost.
 
 ### Charamofu, the dino
 
+Sketched facing right. The engine's convention is that unflipped art faces *left* (the
+Battle scene flips the pet at `x = 0` to face its opponent, `docs/art/ANIMATION.md`), so
+`charamofu/adult.txt` stores every pose mirrored; the grid below is the sketch as drawn.
+
 `Untitled_Artwork 12.png` — idle (v0 frame)
 
 ```
@@ -298,7 +303,7 @@ below): this is the one child stage every route passes through, not the ghost.
 ...............#..#.............
 ```
 
-### Eggs and the unmapped burst
+### Eggs and the hatch burst
 
 `Untitled_Artwork 13.png` — egg, whole
 

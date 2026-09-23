@@ -71,6 +71,22 @@ pub fn render_egg(
     fb
 }
 
+/// How long the hatch flash plays after `Pet::hatched_at`, in simulated seconds (8 ticks). Derived
+/// from persisted state rather than a `Ui` variant, so it costs no save-schema bump and replays
+/// identically (docs/DETERMINISM.md).
+pub const HATCH_BURST_SECS: Sec = 2;
+
+/// Hatch scene: the baby's face in a starburst (`assets/global/hatch.txt`, the one sketch that
+/// wasn't a pose) where the egg just was, inverted on odd ticks the same way Evolving flashes.
+pub fn render_hatch(burst: &Sprite, tick: u32) -> Fb {
+    let mut fb = Fb::new();
+    fb.blit_or(burst, HOME, 0);
+    if tick % 2 == 1 {
+        fb.invert();
+    }
+    fb
+}
+
 /// Main scene (Idle/Dirty): pet toggles `idle_a`/`idle_b` every 2 ticks, walks (narrower range
 /// while dirty so it never overlaps the poop pile), blinks, shows the poop pile and the
 /// attention glyph.
@@ -503,6 +519,15 @@ mod tests {
                 assert_ne!(pages[i], pages[j], "pages {i} and {j} identical");
             }
         }
+    }
+
+    #[test]
+    fn hatch_scene_renders_the_burst_and_flashes() {
+        let even = render_hatch(&crate::assets::generated::HATCH, 0);
+        let odd = render_hatch(&crate::assets::generated::HATCH, 1);
+        assert!(lit(&even) > 0);
+        // Odd ticks are the whole-frame inversion of even ones: every pixel differs.
+        assert_eq!(lit(&odd), (Fb::W * Fb::H) as usize - lit(&even));
     }
 
     #[test]
