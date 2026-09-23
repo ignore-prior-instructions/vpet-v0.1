@@ -1,6 +1,9 @@
 # Style guide: one-bit creatures at 32x32
 
-This file is included verbatim in the generator prompt. Keep it short and concrete.
+This file is included verbatim in the generator prompt. Keep it short and concrete. It describes
+the look generated (`@style silhouette`) art converges on; hand-drawn `@style outline` art
+(`docs/art/LINEAGE.md`) is checked structurally against `docs/art/SPRITE_FORMAT.md` and
+`spritekit validate`, not against every rule below (`docs/adr/0017-hand-drawn-art-and-shared-stages.md`).
 
 ## The look
 

@@ -426,6 +426,7 @@ impl Cart {
 mod tests {
     use super::*;
     use crate::assets::generated::SPECIES;
+    use crate::assets::SpeciesDef;
     use crate::buttons;
     use crate::time::Sec;
 
@@ -490,16 +491,26 @@ mod tests {
         assert_ne!(cart.timers.get(EventKind::Tantrum), NEVER); // tantrums start at Child
     }
 
+    /// lalafu's child has a three-way split (docs/GAME_DESIGN.md "Evolution", first match in
+    /// file order): fed and disciplined -> ninjifu, fed but undisciplined -> lalafu's own adult
+    /// (the ghost), neglected -> charamofu (docs/art/LINEAGE.md). All land on `Stage::Adult`;
+    /// `Stage::AdultAlt` still exists for a single species that wants a bad-care alternate
+    /// adult of its own, lalafu just doesn't use it.
+    fn species_by_id(id: u8) -> &'static SpeciesDef {
+        SPECIES.iter().find(|s| s.id == id).unwrap()
+    }
+
     #[test]
-    fn cared_for_child_becomes_the_adult_and_gets_an_old_age_timer() {
+    fn cared_for_child_becomes_ninjifu_and_gets_an_old_age_timer() {
         let (mut cart, mut now) = child(2);
         cart.pet.care_mistakes = 4;
         cart.pet.discipline = 40;
         evolve_in_one_second(&mut cart, &mut now);
         assert_eq!(cart.pet.stage, Stage::Adult);
+        assert_eq!(cart.pet.species, 3); // ninjifu (registry.toml)
         assert_eq!(cart.timers.get(EventKind::Evolve), NEVER);
 
-        let rules = SPECIES[0].adult.rules;
+        let rules = species_by_id(3).adult.rules;
         let penalty = 4 * GAME.lifespan_penalty_per_mistake_secs;
         let at = cart.timers.get(EventKind::OldAge);
         assert!(at >= cart.sim_now + rules.lifespan_min_secs - penalty);
@@ -508,24 +519,27 @@ mod tests {
     }
 
     #[test]
-    fn neglected_child_becomes_the_alternate_adult() {
+    fn neglected_child_becomes_charamofu() {
         let (mut cart, mut now) = child(3);
-        cart.pet.care_mistakes = 5; // one over the adult branch's max
+        cart.pet.care_mistakes = 5; // one over the ninjifu branch's max
         cart.pet.discipline = 100;
         evolve_in_one_second(&mut cart, &mut now);
-        assert_eq!(cart.pet.stage, Stage::AdultAlt);
-        let rules = SPECIES[0].adult_alt.as_ref().unwrap().rules;
+        assert_eq!(cart.pet.stage, Stage::Adult);
+        assert_eq!(cart.pet.species, 2); // charamofu (registry.toml)
+        let rules = species_by_id(2).adult.rules;
         assert_eq!(cart.pet.hunger.step_secs(), rules.hunger_step_secs);
-        assert_eq!(cart.pet.species, SPECIES[0].id);
     }
 
     #[test]
-    fn undisciplined_child_becomes_the_alternate_adult() {
+    fn fed_but_undisciplined_child_becomes_the_ghost_adult() {
         let (mut cart, mut now) = child(4);
         cart.pet.care_mistakes = 0;
-        cart.pet.discipline = 39; // one under the adult branch's min
+        cart.pet.discipline = 39; // one under the ninjifu branch's min
         evolve_in_one_second(&mut cart, &mut now);
-        assert_eq!(cart.pet.stage, Stage::AdultAlt);
+        assert_eq!(cart.pet.stage, Stage::Adult);
+        assert_eq!(cart.pet.species, 1); // lalafu's own adult, the ghost (registry.toml)
+        let rules = species_by_id(1).adult.rules;
+        assert_eq!(cart.pet.hunger.step_secs(), rules.hunger_step_secs);
     }
 
     #[test]

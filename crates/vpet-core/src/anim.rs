@@ -98,16 +98,21 @@ pub fn is_blink(anim_rng: u32, elapsed_ticks: u32) -> bool {
     elapsed_ticks % WINDOW == offset
 }
 
-/// `walk`: deterministic position at `elapsed_ticks` into the clip, within `[lo, hi]`, starting
-/// at `home` and stepping every 2 ticks with a 15% chance per step (hashed, not drawn from the
-/// simulation RNG) to flip direction or pause 4 to 12 ticks. Recomputed by replaying from the
-/// clip start each call (never stored between frames), which is what makes rendering the same
-/// tick twice, or ticks out of order, give identical results. `elapsed_ticks` is folded into a
-/// bounded window first so a multi-year gap still costs O(1) rather than replaying years of
-/// steps (docs/DETERMINISM.md rule 8: no unbounded work under an adversarial gap); the walk
-/// pattern simply repeats every `REPLAY_PERIOD` ticks of clip time, which is inaudible/invisible
-/// for an idle animation.
-pub fn walk_position(anim_rng: u32, elapsed_ticks: u32, lo: i8, hi: i8, home: i8) -> i8 {
+/// `walk`: deterministic position and facing direction at `elapsed_ticks` into the clip, within
+/// `[lo, hi]`, starting at `home` and stepping every 2 ticks with a 15% chance per step (hashed,
+/// not drawn from the simulation RNG) to flip direction or pause 4 to 12 ticks. Recomputed by
+/// replaying from the clip start each call (never stored between frames), which is what makes
+/// rendering the same tick twice, or ticks out of order, give identical results. `elapsed_ticks`
+/// is folded into a bounded window first so a multi-year gap still costs O(1) rather than
+/// replaying years of steps (docs/DETERMINISM.md rule 8: no unbounded work under an adversarial
+/// gap); the walk pattern simply repeats every `REPLAY_PERIOD` ticks of clip time, which is
+/// inaudible/invisible for an idle animation. Returns `(x, dir)`: `dir` is `1` while stepping
+/// toward `hi` (or paused after doing so) and `-1` toward `lo` -- pure movement direction, not
+/// an art convention; `render_main` maps it to `blit_or`/`blit_or_flipped` knowing art's default
+/// (unflipped) orientation faces *left* (`docs/art/ANIMATION.md`'s BattleReady row: the pet at
+/// `x = 0` is flipped to face right, toward the opponent's unflipped `idle_a`, which itself
+/// faces left).
+fn walk_state(anim_rng: u32, elapsed_ticks: u32, lo: i8, hi: i8, home: i8) -> (i8, i8) {
     const REPLAY_PERIOD: u32 = 20_000; // ~83 minutes of idle-clip time at ANIM_HZ=4
     let bounded = elapsed_ticks % REPLAY_PERIOD;
 
@@ -137,7 +142,17 @@ pub fn walk_position(anim_rng: u32, elapsed_ticks: u32, lo: i8, hi: i8, home: i8
         }
         t += 1;
     }
-    x
+    (x, dir)
+}
+
+pub fn walk_position(anim_rng: u32, elapsed_ticks: u32, lo: i8, hi: i8, home: i8) -> i8 {
+    walk_state(anim_rng, elapsed_ticks, lo, hi, home).0
+}
+
+/// `true` while moving toward `hi` (rightward on screen), `false` while moving toward `lo`.
+/// Says nothing about art orientation on its own; see `walk_state` and `render_main`.
+pub fn walk_facing_right(anim_rng: u32, elapsed_ticks: u32, lo: i8, hi: i8, home: i8) -> bool {
+    walk_state(anim_rng, elapsed_ticks, lo, hi, home).1 > 0
 }
 
 #[cfg(test)]
@@ -188,6 +203,26 @@ mod tests {
                 assert!((1..=15).contains(&x), "seed={seed} t={t} x={x}");
             }
         }
+    }
+
+    #[test]
+    fn walk_starts_facing_right() {
+        // Before any step runs (`elapsed_ticks == 0`, the clip just started), the walk hasn't
+        // picked a direction yet: `walk_state`'s initial `dir = 1` (toward `hi`), for every seed.
+        for seed in 0..20u32 {
+            assert!(walk_facing_right(seed, 0, 1, 15, 8), "seed={seed}");
+        }
+    }
+
+    #[test]
+    fn walk_facing_is_pure_and_order_independent() {
+        let a = walk_facing_right(7, 1234, 1, 15, 8);
+        let b = walk_facing_right(7, 1234, 1, 15, 8);
+        assert_eq!(a, b);
+        let _ = walk_facing_right(7, 500, 1, 15, 8);
+        let c = walk_facing_right(7, 200, 1, 15, 8);
+        let d = walk_facing_right(7, 200, 1, 15, 8);
+        assert_eq!(c, d);
     }
 
     #[test]

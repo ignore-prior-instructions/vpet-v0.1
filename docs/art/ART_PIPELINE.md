@@ -72,6 +72,11 @@ Pure functions; thresholds from `asset-spec.toml`. JSON report per pose:
 | progression | adult bbox area > child > baby | warn |
 | icon (12x12) | column 11 and row 11 empty; density [0.30, 0.70] | error |
 
+For a hand-drawn `@style outline` pose (`docs/art/LINEAGE.md`), density, connectivity, dither,
+symmetry, eye *placement* (not presence), and coherence-vs-idle_a above are warnings, not errors
+(`docs/adr/0017-hand-drawn-art-and-shared-stages.md`); dims, ground, centred, bbox, strays, and
+`sleep`'s shape rule stay errors regardless of style.
+
 ### Preview renderer
 
 `render` upscales x8 with a 1 px gap between pixels. `--style oled` (default): black background,

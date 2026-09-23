@@ -3,13 +3,19 @@
 
 import { Buttons } from "./core";
 
+// Arrow keys mirror the arrow cluster's own left/down/right layout, not the on-screen A/B/C
+// order, so a real keyboard can hold two at once for docs/HOST_ABI.md's A+C restart gesture --
+// a single mouse cursor can only ever be over one of the two on-screen buttons at a time.
 const KEY_TO_BUTTON: Record<string, number> = {
   z: Buttons.A,
   "1": Buttons.A,
+  arrowleft: Buttons.A,
   x: Buttons.B,
   "2": Buttons.B,
+  arrowdown: Buttons.B,
   c: Buttons.C,
   "3": Buttons.C,
+  arrowright: Buttons.C,
 };
 
 export class Input {

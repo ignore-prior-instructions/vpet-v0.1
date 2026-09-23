@@ -196,9 +196,29 @@ def _compile_species(
     stages = toml["stages"]
     has_adult_alt = bool(assets_cfg.get("adult_alt", False))
 
+    if slug in registry_by_slug and registry_by_slug[slug] != sp["id"]:
+        raise CompileError(
+            f"{slug}: species.toml [species] id {sp['id']} does not match registry.toml id "
+            f"{registry_by_slug[slug]} (a `to_species` branch targeting this species would "
+            "resolve to the wrong id)"
+        )
+
+    # `[assets.share]` (ADR 0017): a stage whose art is identical to another species' — used for
+    # a stage this species never actually reaches (the shared child of a species that only has
+    # a drawn adult; a species' own adult when every child branch jumps to another species'
+    # adult instead). `stage_files[stage]` still comes from a real `<slug>/<stage>.txt`, just
+    # not this species' own; the rules in `[stages.<stage>]` (hunger/happy step, schedule, ...)
+    # stay this species' own, since `_compile_stage_set`/`_stage_rules` read them from `stages`.
+    share = assets_cfg.get("share", {})
     stage_files = {}
     for stage in ("baby", "child", "adult"):
-        f = species_dir / f"{stage}.txt"
+        source_slug = share.get(stage, slug)
+        f = assets_root / "species" / source_slug / f"{stage}.txt"
+        if not f.is_file():
+            raise CompileError(
+                f"{slug}: missing {stage} art at {f} (draw it, or add "
+                f'[assets.share] {stage} = "<slug>" in species.toml to reuse another species\' art)'
+            )
         stage_files[stage] = parse(str(f), f.read_text(encoding="utf-8"))
 
     adult_alt_str = "None"

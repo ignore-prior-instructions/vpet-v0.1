@@ -15,7 +15,7 @@ The screen is 64x32 ([ADR 0016](../adr/0016-screen-64x32.md)). Packed rows are
 | Tombstone | 32x32 | 1 global | |
 | Menu icon | 12x12 | 8 global | art in the inner 11x11; row 11 and column 11 blank so inverted selection shows a border |
 | Item | 16x16 | food x3, snack x3, poop x2 | species may override food |
-| Effect | 16x16 | 12 global | heart, heart_small, zz_a, zz_b, skull, sweat, sparkle_a, sparkle_b, hit_star, attention, note, cross |
+| Effect | 16x16 | 13 global | heart, heart_small, zz_a, zz_b, skull, sweat, sparkle_a, sparkle_b, hit_star, attention, note, cross, ghost |
 | Font glyph | 5x7, advance 6 | 42 | A-Z, 0-9, `! ? - . :`, space (`font5x7.txt`); plus heart / empty-heart at 14x14 for status bars (`hearts.txt`). Hand-drawn, not generated |
 | Screen | 64x32 | boot, vs | the one class where image-model quantization is the primary path |
 
@@ -25,7 +25,7 @@ The screen is 64x32 ([ADR 0016](../adr/0016-screen-64x32.md)). Packed rows are
 @cell 16x16            ; required, first line
 @species lalafu        ; species files only
 @stage child           ; species files only: baby | child | adult | adult_alt
-@style silhouette      ; silhouette | outline; informs the validator's density band
+@style silhouette      ; silhouette (default) | outline; see docs/adr/0017
 
 @pose idle_a           ; species files: one of idle_a idle_b happy eat sleep sad attack egg_a egg_b
 @mouth 5,9             ; optional anchor (x,y) in cell coords; default: leftmost on-pixel at 60 % bbox height

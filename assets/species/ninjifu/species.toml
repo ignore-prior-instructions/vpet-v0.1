@@ -1,0 +1,43 @@
+[species]
+id = 3                                  # must match registry.toml
+slug = "ninjifu"
+name = "Ninjifu"
+description = "A cute, masked ninja: what Lalafu's child becomes with good care (docs/art/LINEAGE.md)."
+visual_traits = ["hooded head with two tall pointed ears", "masked closed eyes", "no arms", "stubby feet"]
+hatch_secs = 300
+
+[schedule]
+awake_secs = 50400
+sleep_secs = 36000
+
+# Unreachable directly: a pet only becomes ninjifu at the moment it evolves past Child, already
+# at Stage::Adult. Drawn anyway (`child.txt`, the hood-eared kid) because the evolving-transition
+# animation renders the *new* species' own child stage_set as the "before" pose for its first
+# 8 ticks (crates/vpet-core/src/lib.rs, `BusyKind::Evolving`) -- it is what actually plays on
+# screen while the ghost becomes the ninja. `[assets.share]` below points baby at lalafu's blob
+# since every hatchling looks the same regardless of which adult it will become.
+[stages.baby]
+stage_secs = 3600
+hunger_step_secs = 180
+happy_step_secs = 240
+poop_interval_secs = [7200, 10800]
+
+[stages.child]
+stage_secs = 172800
+hunger_step_secs = 300
+happy_step_secs = 450
+poop_interval_secs = [7200, 10800]
+
+[stages.adult]
+hunger_step_secs = 360
+happy_step_secs = 540
+poop_interval_secs = [7200, 10800]
+lifespan_secs = [432000, 864000]
+
+[assets]
+egg_override  = false
+food_override = false
+adult_alt     = false
+
+[assets.share]
+baby = "lalafu"

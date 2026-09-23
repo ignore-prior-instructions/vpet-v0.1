@@ -1,0 +1,45 @@
+[species]
+id = 2                                  # must match registry.toml
+slug = "charamofu"
+name = "Charamofu"
+description = "A small dinosaur: the adult a neglected child grows into (docs/art/LINEAGE.md)."
+visual_traits = ["side-view head with a long snout", "single visible eye", "small back spines", "stubby legs"]
+hatch_secs = 300
+
+[schedule]
+awake_secs = 50400
+sleep_secs = 36000
+
+# Only ever reached as the adult: a pet becomes charamofu at the moment it evolves past Child.
+# Baby and child are shared (`[assets.share]` below): every route hatches as lalafu's blob and
+# grows through the hooded kid. The child art still renders for this species -- the
+# evolving-transition animation plays the *new* species' own child stage_set as the "before"
+# pose (crates/vpet-core/src/lib.rs, `BusyKind::Evolving`) -- which is why sharing the same
+# child everywhere keeps that transition consistent.
+[stages.baby]
+stage_secs = 3600
+hunger_step_secs = 180
+happy_step_secs = 240
+poop_interval_secs = [7200, 10800]
+
+[stages.child]
+stage_secs = 172800
+hunger_step_secs = 300
+happy_step_secs = 450
+poop_interval_secs = [7200, 10800]
+
+# The "bad care" adult (docs/GAME_DESIGN.md "Evolution"): hungrier, poops more, lives less.
+[stages.adult]
+hunger_step_secs = 300
+happy_step_secs = 600
+poop_interval_secs = [5400, 9000]
+lifespan_secs = [345600, 691200]
+
+[assets]
+egg_override  = false
+food_override = false
+adult_alt     = false
+
+[assets.share]
+baby = "lalafu"
+child = "ninjifu"

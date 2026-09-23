@@ -6,7 +6,9 @@
 use super::fb::Fb;
 use super::layout::*;
 use super::text::{draw_text, text_width};
-use crate::anim::{hop_dy, is_blink, shake_dx, toggle, walk_position, AnimState};
+use crate::anim::{
+    hop_dy, is_blink, shake_dx, toggle, walk_facing_right, walk_position, AnimState,
+};
 use crate::assets::generated::{effect, heart, item, EFFECTS, HEARTS, ITEMS, TOMBSTONE};
 use crate::assets::{Pose, Sprite, StageSet};
 use crate::time::Sec;
@@ -79,10 +81,23 @@ pub fn render_main(stage: &StageSet, poops: u8, attention: u8, tick: u32, anim: 
     let pose = if use_b { &stage.idle_b } else { &stage.idle_a };
     let hi = if poops > 0 { DIRTY_WALK_HI } else { WALK_HI };
     let x = walk_position(anim.anim_rng, elapsed, WALK_LO, hi, PET_HOME_X) as i32;
-    fb.blit_or(&pose.img, x, 0);
+    // Art's default (unflipped) orientation faces left (docs/art/ANIMATION.md's BattleReady
+    // row: the player's pet at x=0 is flipped to face right, toward the opponent's unflipped
+    // idle_a at x=16, which itself faces left, toward the player) -- so walking right is what
+    // needs the flip, not walking left.
+    let facing_right = walk_facing_right(anim.anim_rng, elapsed, WALK_LO, hi, PET_HOME_X);
+    if facing_right {
+        fb.blit_or_flipped(&pose.img, x, 0);
+    } else {
+        fb.blit_or(&pose.img, x, 0);
+    }
     if is_blink(anim.anim_rng, elapsed) {
         if let Some(mask) = &pose.blink {
-            fb.blit_xor(mask, x, 0);
+            if facing_right {
+                fb.blit_xor_flipped(mask, x, 0);
+            } else {
+                fb.blit_xor(mask, x, 0);
+            }
         }
     }
     draw_poop_pile(&mut fb, poops);
@@ -358,11 +373,15 @@ pub fn render_evolving(old: &StageSet, new: &StageSet, tick: u32, anim: &AnimSta
     fb
 }
 
-/// Dead scene: the tombstone, static, a cross overlay.
+/// Dead scene: the tombstone, static, a small ghost hovering beside it (the departed pet's
+/// spirit -- every species gets this one, not just the ghost-shaped lines). `HUD`, not
+/// `HEAD_EFFECT`: the tombstone is the full 32px cell wide near its base, so `HEAD_EFFECT`
+/// (clear of a *pet*'s narrower silhouette) overlaps it; `HUD` is documented clear of anything
+/// drawn at `HOME`.
 pub fn render_dead() -> Fb {
     let mut fb = Fb::new();
     fb.blit_or(&TOMBSTONE, HOME, 0);
-    fb.blit_or(&EFFECTS[effect::CROSS], HEAD_EFFECT.0, HEAD_EFFECT.1);
+    fb.blit_or(&EFFECTS[effect::GHOST], HUD.0, HUD.1);
     fb
 }
 
@@ -487,8 +506,12 @@ mod tests {
     }
 
     #[test]
-    fn dead_scene_renders_the_tombstone() {
-        assert!(lit(&render_dead()) > 0);
+    fn dead_scene_renders_the_tombstone_and_a_ghost() {
+        let fb = render_dead();
+        assert!(lit(&fb) > 0);
+        // The ghost hovers in the HUD slot, documented clear of anything at HOME; this only
+        // lights up if the ghost effect is actually drawn there.
+        assert!(lit_in(&fb, HUD.0, HUD.1, 16, 16) > 0);
     }
 
     #[test]

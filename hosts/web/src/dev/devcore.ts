@@ -28,11 +28,15 @@ export class DevCore {
   }
 
   static async load(wasmUrl: string): Promise<DevCore> {
+    // See core.ts's `Core.load`: `vpet-dev.wasm` is a stable-named static file rebuilt by
+    // `just wasm-dev` on every edit, and this page is reloaded far more often than the wasm is
+    // rebuilt, so skipping the browser's HTTP cache matters even more here.
+    const fetchOpts: RequestInit = { cache: "no-store" };
     let instance: WebAssembly.Instance;
     try {
-      ({ instance } = await WebAssembly.instantiateStreaming(fetch(wasmUrl), {}));
+      ({ instance } = await WebAssembly.instantiateStreaming(fetch(wasmUrl, fetchOpts), {}));
     } catch {
-      const resp = await fetch(wasmUrl);
+      const resp = await fetch(wasmUrl, fetchOpts);
       const bytes = await resp.arrayBuffer();
       ({ instance } = await WebAssembly.instantiate(bytes, {}));
     }

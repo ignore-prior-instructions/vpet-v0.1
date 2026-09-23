@@ -14,7 +14,7 @@ assets/
     icons.txt              8 menu icons, 12x12
     items.txt              food_a/b/c, snack_a/b/c, poop_a/b, 16x16
     effects.txt            heart, heart_small, zz_a, zz_b, skull, sweat, sparkle_a, sparkle_b,
-                           hit_star, attention, note, cross, 16x16
+                           hit_star, attention, note, cross, ghost, 16x16
     font5x7.txt            A-Z 0-9 ! ? - . : space, 5x7 (advance 6)
     hearts.txt             heart_full, heart_empty, 14x14 (status pages)
     egg.txt                egg_a, egg_b, 32x32
@@ -23,10 +23,17 @@ assets/
   species/
     lalafu/
       species.toml
-      baby.txt  child.txt  adult.txt  [adult_alt.txt]
+      [baby.txt]  [child.txt]  [adult.txt]  [adult_alt.txt]   any stage may be shared, see below
       concept/             optional image-model concept PNGs (git-ignored)
       preview/             spritekit render output (git-ignored)
 ```
+
+A stage file is optional if `species.toml` shares it from another species (`[assets.share]`,
+docs/adr/0017): there is one baby (lalafu's blob) and one child (ninjifu's hooded kid) for
+every route, and a species only ever reached as an adult never has its own baby or child
+(docs/art/LINEAGE.md). Compile still requires *some*
+baby/child/adult art per species (`SpeciesDef` has no optional stages), sharing just points at
+where to read it from instead of drawing a copy.
 
 Sprite text format: [art/SPRITE_FORMAT.md](art/SPRITE_FORMAT.md).
 
@@ -48,8 +55,8 @@ All durations are integer seconds. `spritekit render --species` prints the human
 id = 1                                  # must match registry.toml
 slug = "lalafu"
 name = "Lalafu"
-description = "A round, cheerful creature with two long ears and stubby feet."
-visual_traits = ["round body", "two long upright ears", "stubby feet", "no arms", "dot eyes"]
+description = "A small ghost that hatches from a spotted egg."
+visual_traits = ["soft rounded blob body", "small bow-shaped peak on top", "two dot eyes"]
 hatch_secs = 300
 
 [schedule]
@@ -68,36 +75,47 @@ hunger_step_secs = 300
 happy_step_secs = 450
 poop_interval_secs = [7200, 10800]
 
+# First match in file order, strictest first (docs/GAME_DESIGN.md "Evolution"). `to_species`
+# jumps lineages outright; a branch without it stays in this species. `to = "adult_alt"` (an
+# alternate adult within the *same* species, unused by lalafu) is the other option; see
+# docs/adr/0017 for why these differ.
 [[stages.child.evolve.branch]]
 to = "adult"
+to_species = "ninjifu"          # fed and disciplined
 max_care_mistakes = 4
 min_discipline = 40
 
 [[stages.child.evolve.branch]]
-to = "adult_alt"
+to = "adult"                    # fed but undisciplined: lalafu's own adult
+max_care_mistakes = 4
+
+[[stages.child.evolve.branch]]
+to = "adult"
+to_species = "charamofu"        # neglected
 
 [stages.adult]
 hunger_step_secs = 360
 happy_step_secs = 540
 poop_interval_secs = [7200, 10800]
 lifespan_secs = [432000, 864000]
-battle = { power = 6, defense = 4, hp = 10, crit_pct = 10 }
-
-[stages.adult_alt]
-hunger_step_secs = 300
-happy_step_secs = 600
-poop_interval_secs = [5400, 9000]
-lifespan_secs = [345600, 691200]
-battle = { power = 8, defense = 2, hp = 10, crit_pct = 15 }
 
 [assets]
-egg_override  = false        # ships egg_a/egg_b poses in baby.txt
+egg_override  = false        # ships the global egg_a/egg_b poses
 food_override = false
-adult_alt     = true         # adult_alt.txt exists
+adult_alt     = false        # no adult_alt.txt; see the [[stages.child.evolve.branch]] comment
+
+[assets.share]
+child = "ninjifu"             # <stage> = "<slug>": read this stage's art from that species
 ```
 
 Branch fields: `to` (`adult` | `adult_alt`), optional `to_species` (slug), optional
 `max_care_mistakes`, `min_discipline`, `max_weight`, `weight` (RNG priority, default 0).
+
+`[assets.share]` fields: `baby`, `child`, and/or `adult` mapped to another species' slug
+(docs/adr/0017). Compile reads that species' `<stage>.txt` for the art; this species' own
+`[stages.<stage>]` table still supplies the rules (hunger/happy step, `stage_secs`, etc.) if
+that stage is ever reached. `adult_alt` cannot be shared -- ship `adult_alt.txt` or don't set
+`[assets] adult_alt = true`.
 Branches are evaluated in file order; among the first matching set with equal `weight`, one is
 drawn from the RNG.
 

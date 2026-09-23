@@ -55,7 +55,7 @@ w = [12, 20]
 h = [12, 20]
 
 [rules.pet.bbox.child]
-w = [18, 28]
+w = [18, 30]  # 30: the hand-drawn ghost's happy pose (arms up) is 30 wide (ADR 0017)
 h = [20, 30]
 
 [rules.pet.bbox.adult]
@@ -72,7 +72,7 @@ blank_row = 11
 icons   = ["feed", "lights", "play", "medicine", "clean", "status", "discipline", "battle"]
 items   = ["food_a", "food_b", "food_c", "snack_a", "snack_b", "snack_c", "poop_a", "poop_b"]
 effects = ["heart", "heart_small", "zz_a", "zz_b", "skull", "sweat",
-           "sparkle_a", "sparkle_b", "hit_star", "attention", "note", "cross"]
+           "sparkle_a", "sparkle_b", "hit_star", "attention", "note", "cross", "ghost"]
 egg     = ["egg_a", "egg_b"]
 screens = ["boot", "vs"]
 font    = "font5x7"
