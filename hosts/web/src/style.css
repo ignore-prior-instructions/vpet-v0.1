@@ -38,7 +38,11 @@ body[data-theme="lcd"] #bezel {
 
 #screen {
   width: 512px;
-  height: 256px;
+  /* aspect-ratio (not a fixed height) keeps the 64x32 bitmap's 2:1 ratio once `max-width`
+     shrinks it on a narrow viewport -- a fixed height here let width and height scale by
+     different factors, distorting every sprite and making crisp-edges round pixel columns
+     and rows inconsistently (looked like missing/broken chunks of the pet). */
+  aspect-ratio: 2 / 1;
   max-width: 80vw;
   image-rendering: pixelated;
   image-rendering: crisp-edges;

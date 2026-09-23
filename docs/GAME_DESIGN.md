@@ -22,7 +22,11 @@ Egg --(hatch, 5 min)--> Baby --(1 h)--> Child --(48 h, branch)--> Adult / Adult-
 The pet's species is fixed at reset (chosen by the host from the registry, default the first
 species). A species defines all three living stages plus an optional alternate adult. Evolution
 may also jump to another species' next stage (`to_species` in the branch), which is how the v0
-lineage lalafu -> ninjifu / charamofu is expressed.
+lineage lalafu -> ninjifu / charamofu is expressed. Every egg is lalafu: blob baby, then the
+hooded-kid child (the one child there is, shared by all three species), then a three-way split
+on care: fed and disciplined -> ninjifu (the ninja), fed but undisciplined -> lalafu's own adult
+(the ghost), neglected -> charamofu (the dino) (`docs/art/LINEAGE.md`,
+`docs/adr/0017-hand-drawn-art-and-shared-stages.md`).
 
 ## Needs and stats
 

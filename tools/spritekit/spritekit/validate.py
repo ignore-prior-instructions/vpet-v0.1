@@ -239,10 +239,22 @@ def symmetry_errors(rows: list[str], w: int, h: int, bbox: BBox | None, threshol
     return [], {"symmetry": score}
 
 
-def eyes_errors(rows: list[str], w: int, h: int, bbox: BBox | None, top_fraction: float) -> list[str]:
+def eyes_presence_errors(rows: list[str], w: int, h: int) -> list[str]:
+    """Every idle pose must have at least one marked eye pixel, generated or hand-drawn (ADR
+    0017): a pose with no mask never blinks, which is always a mistake for idle_a/idle_b."""
     mask_pixels = [(x, y) for y in range(h) for x in range(w) if rows[y][x] in MASK_CHARS]
     if not mask_pixels:
         return ["no blink-mask pixels ('-'/'o'): idle_a/idle_b require marked eyes"]
+    return []
+
+
+def eyes_placement_errors(rows: list[str], w: int, h: int, bbox: BBox | None, top_fraction: float) -> list[str]:
+    """Top-band and mirrored-pair placement, split out from presence (ADR 0017) so a caller can
+    route placement into warnings for hand-drawn `@style outline` art while presence stays a
+    hard error for every style."""
+    mask_pixels = [(x, y) for y in range(h) for x in range(w) if rows[y][x] in MASK_CHARS]
+    if not mask_pixels:
+        return []
     errors = []
     if bbox is not None:
         x0, y0, x1, y1 = bbox
@@ -256,6 +268,10 @@ def eyes_errors(rows: list[str], w: int, h: int, bbox: BBox | None, top_fraction
             if (mx, y) not in mask_set:
                 errors.append(f"eye mask pixel at ({x},{y}) has no mirrored partner at ({mx},{y})")
     return errors
+
+
+def eyes_errors(rows: list[str], w: int, h: int, bbox: BBox | None, top_fraction: float) -> list[str]:
+    return eyes_presence_errors(rows, w, h) + eyes_placement_errors(rows, w, h, bbox, top_fraction)
 
 
 def _eye_centroid(rows: list[str], w: int, h: int) -> tuple[float, float] | None:
@@ -355,6 +371,9 @@ def validate_file(path: Path, spec: Spec) -> list[Report]:
 
     cell_class = infer_cell_class(path)
     stage = gf.meta.get("stage")
+    style = gf.meta.get("style", "silhouette")
+    if style not in ("silhouette", "outline"):
+        file_errors.append(f"@style {style!r} is not 'silhouette' or 'outline'")
     by_name = {s.name: s for s in gf.sprites}
     idle_a = by_name.get("idle_a")
     rp = spec.rules_pet
@@ -375,24 +394,32 @@ def validate_file(path: Path, spec: Spec) -> list[Report]:
             r.metrics.update(metrics)
 
         elif cell_class == "pet":
+            # ADR 0017: `@style outline` marks hand-drawn art, checked structurally (dims,
+            # ground row, centring, per-stage bbox, stray/hole, sleep shape, eye *presence*)
+            # but not for the aesthetic bands the generator/validator loop was built around
+            # (density, dither, connectivity, symmetry, eye placement, coherence-vs-idle_a),
+            # which become warnings instead of errors. `@style silhouette` (the default) keeps
+            # the full strict validator, for generated art.
+            sink = r.warnings if style == "outline" else r.errors
             bb = compute_bbox(sprite.rows, gf.cell_w, gf.cell_h)
             r.errors.extend(ground_errors(sprite.rows, gf.cell_h, bb, rp.get("ground_row", 15)))
             r.errors.extend(centred_errors(bb, gf.cell_w, rp.get("center_tolerance", 1.0)))
-            r.errors.extend(dither_errors(sprite.rows, gf.cell_w, gf.cell_h, rp.get("max_checkerboards", 1)))
-            r.errors.extend(
+            sink.extend(dither_errors(sprite.rows, gf.cell_w, gf.cell_h, rp.get("max_checkerboards", 1)))
+            sink.extend(
                 connectivity_errors(
                     sprite.rows, gf.cell_w, gf.cell_h, rp.get("max_components", 3), rp.get("min_component_px", 3)
                 )
             )
             errs, metrics = density_errors(sprite.rows, bb, *rp.get("density", [0.45, 0.85]))
-            r.errors.extend(errs)
+            sink.extend(errs)
             r.metrics.update(metrics)
 
             if stage in ("baby", "child", "adult", "adult_alt"):
                 # `sleep` has its own shape rule (sleep_errors: same bottom, height <= idle_a's)
                 # instead of the per-stage bbox band — it is explicitly meant to be shorter/
                 # rounder than a standing pose (docs/art/STYLE_GUIDE.md rule 10, docs/art/
-                # ART_PIPELINE.md's coherence row for sleep).
+                # ART_PIPELINE.md's coherence row for sleep). Bbox band stays a hard error even
+                # for outline art: it is the one shape check that keeps stages visibly growing.
                 if sprite.name != "sleep":
                     w_range, h_range = _stage_bbox_range(spec, stage)
                     r.errors.extend(bbox_range_errors(bb, w_range, h_range))
@@ -402,14 +429,17 @@ def validate_file(path: Path, spec: Spec) -> list[Report]:
                     errs, metrics = symmetry_errors(
                         sprite.rows, gf.cell_w, gf.cell_h, bb, sym_table[sprite.name], sprite.name
                     )
-                    if sprite.name in ("happy", "sad"):
+                    if sprite.name in ("happy", "sad") or style == "outline":
                         r.warnings.extend(errs)
                     else:
                         r.errors.extend(errs)
                     r.metrics.update(metrics)
 
                 if sprite.name in rp.get("eyes_required", []):
-                    r.errors.extend(eyes_errors(sprite.rows, gf.cell_w, gf.cell_h, bb, rp.get("eyes_top_fraction", 0.45)))
+                    r.errors.extend(eyes_presence_errors(sprite.rows, gf.cell_w, gf.cell_h))
+                    sink.extend(
+                        eyes_placement_errors(sprite.rows, gf.cell_w, gf.cell_h, bb, rp.get("eyes_top_fraction", 0.45))
+                    )
 
                 coh_table = rp.get("coherence", {})
                 if sprite.name in coh_table and idle_a is not None and sprite.name != "idle_a":
@@ -424,7 +454,7 @@ def validate_file(path: Path, spec: Spec) -> list[Report]:
                         sprite.name,
                         coh_table.get("max_eye_drift_px", 1),
                     )
-                    r.errors.extend(errs)
+                    sink.extend(errs)
                     r.metrics.update(metrics)
 
                 if sprite.name == "sleep" and idle_a is not None:

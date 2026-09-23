@@ -21,6 +21,7 @@ change is a new ADR that supersedes the old one.
 | [0014](0014-text-grid-art-with-critique-loop.md) | Model-generated art through text grids with a validate/render/critique loop | accepted |
 | [0015](0015-blink-as-xor-mask.md) | Blink as an XOR mask in the sprite alphabet | accepted |
 | [0016](0016-screen-64x32.md) | 64x32 screen, 32x32 pets, 12x12 icons, 5x7 font | accepted |
+| [0017](0017-hand-drawn-art-and-shared-stages.md) | Hand-drawn art keeps its own style; species may share a stage's art | accepted |
 
 ## Template
 

@@ -28,6 +28,7 @@ Art and rendering:
 | [art/ANIMATION.md](art/ANIMATION.md) | Pose set, procedural motion, clip table, state machine |
 | [art/STYLE_GUIDE.md](art/STYLE_GUIDE.md) | Visual rules for one-bit 32x32 creatures |
 | [art/ART_PIPELINE.md](art/ART_PIPELINE.md) | `spritekit`: generate, validate, render, critique, approve |
+| [art/LINEAGE.md](art/LINEAGE.md) | Where the pet lines came from: v0 species and the Procreate sketches |
 
 Hosts:
 

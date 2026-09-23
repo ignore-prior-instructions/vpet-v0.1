@@ -39,7 +39,7 @@ All are pure functions of `(tick, rng_state_snapshot, ui, pet)`.
 | `toggle` | period = 2 | alternate two poses every `period` ticks |
 | `hop` | | dy from `[0, -1, -2, -1]` indexed by `tick % 4` |
 | `shake` | | dx from `[-1, 1, -1, 0]` |
-| `walk` | range, step = 2 | every `step` ticks x += dir; at a bound, or with 15 % chance per step, flip dir or pause 4 to 12 ticks; poses toggle per step |
+| `walk` | range, step = 2 | every `step` ticks x += dir; at a bound, or with 15 % chance per step, flip dir or pause 4 to 12 ticks; poses toggle per step. Also drives facing: `flip_h` while `dir` is positive (walking toward `hi`), since art's default (unflipped) orientation faces left (see BattleReady below) |
 | `overlay` | sprite, anchor | OR-blit a 16x16 effect at `head_top`, `head_right`, `corner_tr`, `mouth`, or absolute |
 
 Anchors derive from the pose bbox: `head_top` = (bbox centre x - 4, bbox y0 - 8, clamped),
@@ -62,7 +62,7 @@ rng[0])` at each state change so blinks never consume simulation randomness.
 | Playing | happy / idle_a toggle; flip_h per round | hop on correct | `heart` or `sweat` at head_top | 5 rounds, player-paced, 30 s timeout |
 | Discipline | sad | shake | none | 6 ticks |
 | Evolving | idle_a (old) 8 ticks, idle_a (new) 4 ticks | invert each tick, then shake | `sparkle_a/b` at corners | 12 ticks |
-| Dead | tombstone | none | `cross` at head_top | static |
+| Dead | tombstone | none | `ghost` in the HUD slot (the departed pet's spirit; `head_top` overlaps the tombstone's own art, which is a full 32px cell) | static |
 | BattleReady | attack (or happy) at x = 0 flipped; opponent idle_a at x = 16 | shake once | none | until B or C |
 | Battling | attack | scripted lunges from the turn list; invert 1 tick on hit | `hit_star` at target | 6 turns x 4 ticks |
 | BattleResult | happy or sad | hop or none | `heart` or `sweat`; WIN/LOSE/DRAW text row 0 | 8 ticks |

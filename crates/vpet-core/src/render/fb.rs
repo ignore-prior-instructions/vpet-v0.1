@@ -106,6 +106,12 @@ impl Fb {
         self.blit_op(sprite, x, y, |dst, src| dst ^ src);
     }
 
+    /// XOR a sprite onto the buffer, mirrored horizontally -- a blink mask must flip the same
+    /// way as the pose it belongs to, or the mask misaligns with the (mirrored) eyes.
+    pub fn blit_xor_flipped(&mut self, sprite: &Sprite, x: i32, y: i32) {
+        self.blit_op_ex(sprite, x, y, true, |dst, src| dst ^ src);
+    }
+
     /// XOR every pixel in the whole buffer (docs/art/SCREEN_LAYOUT.md: sleeping with lights
     /// off, evolution flash).
     pub fn invert(&mut self) {
@@ -220,5 +226,22 @@ mod tests {
         fb.blit_or_flipped(&sprite, 0, 0);
         assert!(!fb.get(0, 0)); // was column 0, now mirrored to column 1
         assert!(fb.get(1, 0));
+    }
+
+    #[test]
+    fn flipped_xor_blit_toggles_the_mirrored_column() {
+        // A blink mask must flip the same way as the pose it belongs to (walking left), or it
+        // would XOR the wrong (unmirrored) column and desync from the mirrored eyes.
+        static ROWS: [u8; 2] = [0b1000_0000, 0b0000_0000];
+        let mask = Sprite {
+            w: 2,
+            h: 2,
+            rows: &ROWS,
+        };
+        let mut fb = Fb::new();
+        fb.blit_or_flipped(&sprite2x2_full(), 0, 0); // both columns on, as drawn mirrored
+        fb.blit_xor_flipped(&mask, 0, 0);
+        assert!(fb.get(0, 0)); // untouched: mask's (0,0) mirrors to column 1
+        assert!(!fb.get(1, 0)); // toggled off: mask's (0,0) lands here once mirrored
     }
 }

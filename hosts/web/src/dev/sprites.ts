@@ -113,7 +113,7 @@ function renderGallery(container: HTMLElement, gf: GridFile, stage: "baby" | "ch
     cell.appendChild(canvas);
     drawRawPose(canvas, sprite.rows, gf.cellW, gf.cellH);
 
-    const badges = badgesFor(sprite.rows, gf.cellW, gf.cellH, stage);
+    const badges = badgesFor(sprite.rows, gf.cellW, gf.cellH, stage, gf.meta.style);
     cell.appendChild(renderBadges(badges));
     container.appendChild(cell);
   }
@@ -145,9 +145,10 @@ function renderBadges(badges: Badge[]): HTMLElement {
   row.className = "badges";
   for (const b of badges) {
     const span = document.createElement("span");
-    span.className = `badge ${b.ok ? "ok" : "err"}`;
+    const cls = b.ok ? "ok" : b.warn ? "warn" : "err";
+    span.className = `badge ${cls}`;
     span.title = b.detail;
-    span.textContent = `${b.label} ${b.ok ? "✓" : "✗"}`;
+    span.textContent = `${b.label} ${b.ok ? "✓" : b.warn ? "!" : "✗"}`;
     row.appendChild(span);
   }
   return row;

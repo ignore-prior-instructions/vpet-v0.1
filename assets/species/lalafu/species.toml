@@ -2,14 +2,16 @@
 id = 1                                  # must match registry.toml
 slug = "lalafu"
 name = "Lalafu"
-description = "A round, cheerful creature with two long ears and stubby feet."
-visual_traits = ["round body", "two long upright ears", "stubby feet", "no arms", "dot eyes"]
+description = "A small ghost: the adult a well-fed but undisciplined child grows into (docs/art/LINEAGE.md)."
+visual_traits = ["soft rounded blob body", "small bow-shaped peak on top", "two dot eyes", "tiny nub arms and feet"]
 hatch_secs = 300
 
 [schedule]
 awake_secs = 50400
 sleep_secs = 36000
 
+# Every egg hatches as lalafu: the blob baby, then the hooded kid (the one child sketch there is,
+# `ninjifu/child.txt`, shared via `[assets.share]` below), then one of three adults by care.
 [stages.baby]
 stage_secs = 3600
 hunger_step_secs = 180
@@ -22,30 +24,33 @@ hunger_step_secs = 300
 happy_step_secs = 450
 poop_interval_secs = [7200, 10800]
 
+# First match in file order (docs/GAME_DESIGN.md "Evolution"), strictest first:
+# fed and disciplined -> ninjifu; fed but undisciplined -> lalafu's own adult, the ghost;
+# neglected (5+ care mistakes) -> charamofu.
 [[stages.child.evolve.branch]]
 to = "adult"
+to_species = "ninjifu"
 max_care_mistakes = 4
 min_discipline = 40
 
 [[stages.child.evolve.branch]]
-to = "adult_alt"
+to = "adult"
+max_care_mistakes = 4
+
+[[stages.child.evolve.branch]]
+to = "adult"
+to_species = "charamofu"
 
 [stages.adult]
 hunger_step_secs = 360
 happy_step_secs = 540
 poop_interval_secs = [7200, 10800]
 lifespan_secs = [432000, 864000]
-battle = { power = 6, defense = 4, hp = 10, crit_pct = 10 }
-
-# The "bad care" adult (docs/GAME_DESIGN.md "Evolution"): hungrier, poops more, lives less.
-[stages.adult_alt]
-hunger_step_secs = 300
-happy_step_secs = 600
-poop_interval_secs = [5400, 9000]
-lifespan_secs = [345600, 691200]
-battle = { power = 8, defense = 2, hp = 10, crit_pct = 15 }
 
 [assets]
 egg_override  = false        # ships the global egg_a/egg_b poses
 food_override = false
-adult_alt     = true         # adult_alt.txt exists
+adult_alt     = false
+
+[assets.share]
+child = "ninjifu"

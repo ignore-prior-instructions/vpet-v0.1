@@ -64,14 +64,19 @@ export class Core {
   }
 
   static async load(wasmUrl: string): Promise<Core> {
+    // `public/vpet.wasm` is a plain static file with a stable name, not one of Vite's
+    // content-hashed build assets, so the browser's HTTP cache has no way to know a rebuild
+    // changed it; `no-store` makes every load hit disk instead of serving a stale copy from
+    // before the last `just wasm` (a real, previously-hit source of "the fix isn't showing up").
+    const fetchOpts: RequestInit = { cache: "no-store" };
     let instance: WebAssembly.Instance;
     try {
-      ({ instance } = await WebAssembly.instantiateStreaming(fetch(wasmUrl), {}));
+      ({ instance } = await WebAssembly.instantiateStreaming(fetch(wasmUrl, fetchOpts), {}));
     } catch {
       // Fallback for servers that don't send `application/wasm` (docs/hosts/web.md doesn't
       // anticipate this, but Vite's own dev server has been known to get it wrong for some
       // static-file configurations).
-      const resp = await fetch(wasmUrl);
+      const resp = await fetch(wasmUrl, fetchOpts);
       const bytes = await resp.arrayBuffer();
       ({ instance } = await WebAssembly.instantiate(bytes, {}));
     }

@@ -1,6 +1,16 @@
 # Species registry. Append-only: never renumber or remove an entry, since saves reference a
-# species by id (docs/CONTENT.md).
+# species by id (docs/CONTENT.md). Ids match v0's (vpet-v0-ts/vpet-gen1-ts/public/sprites/
+# manifest.json): lalafu=1, charamofu=2, ninjifu=3 (docs/art/LINEAGE.md). lalafu stays first so
+# it stays SPECIES[0], the reset default.
 
 [[species]]
 id = 1
 slug = "lalafu"
+
+[[species]]
+id = 2
+slug = "charamofu"
+
+[[species]]
+id = 3
+slug = "ninjifu"
