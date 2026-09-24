@@ -611,6 +611,14 @@ impl Cart {
                 .saturating_sub(self.sim_now);
             return compose::render_egg(egg_sprites, remaining, tick, &self.anim);
         }
+        // The hatch flash: the first `HATCH_BURST_SECS` after `hatched_at`, before the baby is
+        // shown (docs/art/ANIMATION.md "Hatch"). Purely a function of persisted state and the
+        // tick, like everything else here.
+        if self.pet.stage == Stage::Baby
+            && self.sim_now.saturating_sub(self.pet.hatched_at) < compose::HATCH_BURST_SECS
+        {
+            return compose::render_hatch(&generated::HATCH, tick);
+        }
 
         let species = self.species_def();
         let stage_set = self.stage_set(species);

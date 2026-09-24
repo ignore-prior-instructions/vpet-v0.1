@@ -201,6 +201,9 @@ pub fn render_clip(slug: &str, stage: u8, activity: &str, tick: u32) -> Fb {
         let remaining = if activity == "egg_hatching" { 0 } else { 120 };
         return compose::render_egg(egg, remaining, tick, &anim);
     }
+    if activity == "hatching" {
+        return compose::render_hatch(&generated::HATCH, tick);
+    }
 
     let Some(set) = resolve_stage_set(slug, stage) else {
         return Fb::new();

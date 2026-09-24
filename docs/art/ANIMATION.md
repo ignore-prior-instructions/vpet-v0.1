@@ -67,6 +67,7 @@ rng[0])` at each state change so blinks never consume simulation randomness.
 | Battling | attack | scripted lunges from the turn list; invert 1 tick on hit | `hit_star` at target | 6 turns x 4 ticks |
 | BattleResult | happy or sad | hop or none | `heart` or `sweat`; WIN/LOSE/DRAW text row 0 | 8 ticks |
 | Egg | egg_a; egg_b in the last minute | hop in the last 4 ticks | none | until Hatch |
+| Hatch | `burst` (global `hatch.txt`: the baby's face in a starburst) at home | `invert` on odd ticks | none | first 2 s after `hatched_at` (8 ticks), then Idle |
 
 ## State machine
 

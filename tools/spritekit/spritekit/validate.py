@@ -327,6 +327,8 @@ _GLOBAL_CLASS_BY_STEM = {
     "effects": "effect",
     "egg": "pet",
     "tombstone": "pet",
+    # The hatch flash: a 32x32 burst that floats over the egg's spot, no ground contact.
+    "hatch": "effect",
     "screens": "screen",
     "font5x7": "glyph",
     # The two 14x14 status-bar hearts live in their own file because the text-grid format is

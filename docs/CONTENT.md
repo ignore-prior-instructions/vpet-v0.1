@@ -19,6 +19,7 @@ assets/
     hearts.txt             heart_full, heart_empty, 14x14 (status pages)
     egg.txt                egg_a, egg_b, 32x32
     tombstone.txt          32x32
+    hatch.txt              burst, 32x32 (the hatch flash)
     screens.txt            boot, vs, 64x32
   species/
     lalafu/
@@ -145,6 +146,7 @@ pub static FONT_5X7: [Sprite; 42] = [ ... ];
 pub static HEARTS: [Sprite; 2] = [ ... ];
 pub static EGG: [Sprite; 2] = [ ... ];
 pub static TOMBSTONE: Sprite = ...;
+pub static HATCH: Sprite = ...;                       // the hatch burst
 pub static SCREENS: [Sprite; 2] = [ ... ];
 pub static GAME: GameRules = GameRules { care_miss_secs: 900, ... };
 pub fn glyph_index(c: u8) -> Option<u8> { ... }

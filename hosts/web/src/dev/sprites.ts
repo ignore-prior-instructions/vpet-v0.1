@@ -14,6 +14,7 @@ const POSE_NAMES = ["idle_a", "idle_b", "happy", "eat", "sleep", "sad"] as const
 const ACTIVITIES = [
   "egg_idle",
   "egg_hatching",
+  "hatching",
   "idle",
   "dirty",
   "sick",
