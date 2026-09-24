@@ -23,3 +23,11 @@ assets/**/gen-log.jsonl
 .env.*
 # OS
 .DS_Store
+
+# design-sync (docs: .design-sync/NOTES.md); staged converter, its deps, build output, machine state
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+packages/vpet-ds/src/sprites.gen.ts
