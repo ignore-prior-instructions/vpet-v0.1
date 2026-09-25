@@ -35,5 +35,6 @@ here redraws art; `scripts/sprites.mjs` reads `tests/fixtures/packed.json` (spri
   ships stale art.
 - Remote font: previews graded online. A `[FONT_MISSING]`-style fallback would show as
   system-ui text in the sheets.
-- Not yet uploaded: `DesignSync` needs `/design-login` from an interactive session on this
-  machine. `projectId` is unset until that happens (first sync creates a fresh project).
+- Uploaded 2026-09-24 to the Claude Design project "vpet" (`projectId` in config.json,
+  https://claude.ai/design/p/060cf6a2-d0f8-4206-a686-16c3c713f2a1). `DesignSync` needs
+  `/design-login` once per machine from an interactive session.
