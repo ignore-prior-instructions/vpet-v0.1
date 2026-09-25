@@ -58,7 +58,10 @@ the held mask; `pointercancel` and `blur` clear it. Touch works without special 
   Chosen over localStorage because it stores bytes natively.
 - localStorage only for host settings: server URL, token, pet id, theme, sound, shell colour,
   dev clock offset.
-- Save on `SAVE_NEEDED` debounced 500 ms, a checkpoint every 30 s, and on `pagehide`.
+- Save on `SAVE_NEEDED` debounced 500 ms, on New egg, and on `pagehide`. No timed checkpoint:
+  loading fast-forwards from the wall clock, so elapsed time alone never needs writing.
+- Every save is posted on a `BroadcastChannel` (`vpet-save`); other open tabs load it at once,
+  so a second tab never holds, or writes back, an older pet.
 - Server sync as in [SYNC.md](../SYNC.md), debounced 2 s for pushes.
 
 ## Sync

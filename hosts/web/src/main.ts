@@ -16,7 +16,7 @@ import { Recorder } from "./vlog";
 const TICK_MS = 100;
 const SAVE_DEBOUNCE_MS = 500;
 const PUSH_DEBOUNCE_MS = 2_000;
-const CHECKPOINT_MS = 30_000;
+const STATUS_REFRESH_MS = 30_000;
 const PULL_TIMEOUT_MS = 5_000;
 
 function randomSeed(): bigint {
@@ -125,13 +125,27 @@ async function main(): Promise<void> {
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
   let pushTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Saves happen only when something changed: the core's SAVE_NEEDED (an action applied, a
+  // restart, any timer event), New egg, and pagehide. No timed checkpoint: loading always
+  // fast-forwards from the wall clock, so pure elapsed time never needs writing, and a timed
+  // write from a stale second tab is how an old pet came back after a refresh.
+  // Every save is broadcast so other open tabs adopt it instead of holding an old copy.
+  const tabs = "BroadcastChannel" in window ? new BroadcastChannel("vpet-save") : null;
+  let lastSaved: Uint8Array | null = null;
+
   function saveNow(): Uint8Array | null {
     const blob = core.save();
     if (blob) {
       persist.putBlob(blob).catch((e) => console.error("persist.putBlob failed", e));
       recorder.save();
+      tabs?.postMessage(blob);
+      lastSaved = blob;
     }
     return blob;
+  }
+
+  function sameBytes(a: Uint8Array | null, b: Uint8Array): boolean {
+    return a !== null && a.length === b.length && a.every((v, i) => v === b[i]);
   }
 
   function scheduleSave(): void {
@@ -318,6 +332,19 @@ async function main(): Promise<void> {
     });
   }
 
+  // Another tab saved: adopt its pet. Same path as a hex import (load, then re-record).
+  if (tabs) {
+    tabs.onmessage = (e: MessageEvent<Uint8Array>) => {
+      const blob = new Uint8Array(e.data);
+      if (sameBytes(lastSaved, blob)) return;
+      if (core.load(blob) !== 0) return;
+      lastSaved = blob;
+      recorder.load();
+      blit(ctx!, core.frame(), theme);
+      devPanel?.update();
+    };
+  }
+
   let lastLoggedMask = -1; // force the first `t` line to be logged
 
   function tick(): void {
@@ -355,9 +382,8 @@ async function main(): Promise<void> {
   tick();
   setInterval(tick, TICK_MS);
   setInterval(() => {
-    saveNow();
     if (lastSyncedAt !== null) status(`synced ${relative(lastSyncedAt)}`, "ok");
-  }, CHECKPOINT_MS);
+  }, STATUS_REFRESH_MS);
 
   // The pull happens after the first paint so a slow server never delays the pet appearing.
   void pullAndReconcile();

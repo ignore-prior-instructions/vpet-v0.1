@@ -72,8 +72,9 @@ movement is UI state and is immediate.
 | 3 | `ATTENTION` | the pet is calling; may blink an LED or badge |
 
 `SAVE_NEEDED` is set when state changed materially (an event fired, an action applied, a stage
-changed), not on every animation tick. Hosts also checkpoint periodically (web 30 s, ESP32
-5 min) and on hide/close.
+changed), not on every animation tick. Hosts also save on hide/close. The ESP32 also
+checkpoints every 5 min against power loss; the web host does not, because a browser tab
+survives the time passing and a timed write from a stale second tab can clobber a newer save.
 
 ## Load errors
 
