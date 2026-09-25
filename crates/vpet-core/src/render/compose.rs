@@ -46,8 +46,9 @@ fn head_right(pose: &Pose, x: i32) -> (i32, i32) {
     (x + x1 as i32 + 1, y0 as i32)
 }
 
-/// Egg scene: `egg_a` at home; in the last minute before hatching, alternates with `egg_b`
-/// every 8 ticks; hops in the final second (docs/art/ANIMATION.md "Egg").
+/// Egg scene: `egg_a` at home, rocking one pixel left/right every 8 ticks so it never reads
+/// as frozen; in the last minute before hatching, alternates with `egg_b` every 8 ticks
+/// instead; hops in the final second (docs/art/ANIMATION.md "Egg").
 pub fn render_egg(
     egg_sprites: &[Sprite; 2],
     remaining_to_hatch: Sec,
@@ -56,18 +57,26 @@ pub fn render_egg(
 ) -> Fb {
     let mut fb = Fb::new();
     let elapsed = tick.wrapping_sub(anim.clip_start_tick);
-    let use_b = remaining_to_hatch <= 60 && toggle(elapsed, 8);
+    let last_minute = remaining_to_hatch <= 60;
+    let use_b = last_minute && toggle(elapsed, 8);
     let sprite = if use_b {
         &egg_sprites[1]
     } else {
         &egg_sprites[0]
+    };
+    let dx = if last_minute {
+        0
+    } else if toggle(elapsed, 8) {
+        1
+    } else {
+        -1
     };
     let dy = if remaining_to_hatch <= 1 {
         hop_dy(tick)
     } else {
         0
     };
-    fb.blit_or(sprite, HOME, dy);
+    fb.blit_or(sprite, HOME + dx, dy);
     fb
 }
 
@@ -519,6 +528,23 @@ mod tests {
                 assert_ne!(pages[i], pages[j], "pages {i} and {j} identical");
             }
         }
+    }
+
+    #[test]
+    fn egg_rocks_one_pixel_every_eight_ticks_until_the_last_minute() {
+        let egg = &crate::assets::generated::EGG;
+        let anim = AnimState::default();
+        let a = render_egg(egg, 200, 0, &anim);
+        let b = render_egg(egg, 200, 8, &anim);
+        let a2 = render_egg(egg, 200, 16, &anim);
+        assert_ne!(a, b, "the two rock frames must differ");
+        assert_eq!(a, a2, "the rock repeats every 16 ticks");
+        assert_eq!(lit(&a), lit(&b), "a shift, not a different sprite");
+        // In the last minute the egg holds still (and swaps to egg_b instead).
+        assert_eq!(
+            render_egg(egg, 30, 0, &anim),
+            render_egg(egg, 30, 16, &anim)
+        );
     }
 
     #[test]
