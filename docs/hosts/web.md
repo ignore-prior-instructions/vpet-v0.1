@@ -97,7 +97,8 @@ the **cheat sheet** (also at `?cheatsheet`): the evolution rules in plain words.
 
 ## Dev panel
 
-Shown on `localhost` or with `?dev`. It renders `inspect` as a table, offers a clock-offset
+Shown on `localhost` or with `?dev`. It folds to a "Dev" button: click it to open, click
+anywhere outside to fold (except the device's A/B/C, so you can play while watching it). It renders `inspect` as a table, offers a clock-offset
 control (`+1 h`, `+1 day`, custom) added to `Date.now()` for fast-forward testing, a `.vlog`
 recorder and downloader, and blob import/export as hex (the manual transfer path to an ESP32
 over serial before WiFi sync exists).
