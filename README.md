@@ -1,16 +1,23 @@
 # vpet-v0.1
 
+<p align="center">
+  <a href="https://ignore-prior-instructions.github.io/vpet-v0.1/">
+    <img src="https://img.shields.io/badge/%E2%96%B6%20%20Play%20vpet-fc7eaf?style=for-the-badge&labelColor=271e38&color=fc7eaf" alt="Play vpet" height="40">
+  </a>
+</p>
+
 A Gen-1 style virtual pet (Tamagotchi / early Digimon lineage) built as **one deterministic
 simulation core that runs unchanged in a browser, on a sync server, and on an ESP32 with a
-128x64 OLED**.
+64x32 OLED**.
 
 The core is a Rust crate compiled to WebAssembly for the web and natively for hardware. It owns
 the whole game: state, time, rules, and the 64x32 one-bit framebuffer. Each platform host is a
 thin blitter that passes in time and button state and copies pixels out. A tiny Rust server stores
 the save blob so the same pet follows you between devices.
 
-Art is model-generated pixel art, kept honest by tooling: a text-grid sprite format, a validator,
-an OLED-look preview renderer, and a generate/validate/render/critique loop.
+The pets are hand-drawn pixel sketches (docs/art/LINEAGE.md), kept honest by tooling: a
+text-grid sprite format, a validator, a preview renderer, and a hot-reload page. The page
+around the screen is a small design system (packages/vpet-ds) shared with Claude Design.
 
 This repository is the successor to `vpet-v0-ts`, which proved the game design and the
 timestamp-based state idea and then stalled on its stack and its art. See
@@ -18,11 +25,11 @@ timestamp-based state idea and then stalled on its stack and its art. See
 
 ## Play it
 
-**https://ignore-prior-instructions.github.io/vpet-v0.1/** (published from `main` by
-`.github/workflows/pages.yml`). Add `?dev` to the URL for the inspect panel and clock-skip
-buttons. Keys: `Z` = A (menu / cursor / guess left), `X` = B (select / guess right), `C` = C
-(back). Your pet is saved in the browser; hold `Z`+`C` for a second on the tombstone for a new
-egg. Rules: [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md).
+[ignore-prior-instructions.github.io/vpet-v0.1](https://ignore-prior-instructions.github.io/vpet-v0.1/)
+(published from `main` by `.github/workflows/pages.yml`). Add `?dev` to the URL for the inspect
+panel and clock-skip buttons. Keys: `Z` or `←` = A (menu / cursor / guess left), `X` or `↓` = B
+(select / guess right), `C` or `→` = C (back). Your pet is saved in the browser; hold A and C
+together for a second on the tombstone for a new egg. Rules: [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md).
 
 Locally:
 
@@ -33,11 +40,12 @@ cargo run -p vpet-cli -- play                    # terminal: a/b/c + Enter, + sk
 
 ## Status
 
-Phases 0 to 5 of [docs/ROADMAP.md](docs/ROADMAP.md) are done: the full care loop, one species
-(lalafu) with both adult forms, evolution, old age, death and restart, the content pipeline
-with hot preview, 16 golden replays, five property tests, native-vs-wasm parity in CI, and
-multi-device sync (an axum blob store plus a browser client behind the gear icon; the server
-is built and Dockerised but not hosted yet). Next: Phase 6 (battle, more species), Phase 7
+Phases 0 to 5 of [docs/ROADMAP.md](docs/ROADMAP.md) are done: the full care loop, three
+species from the sketches (lalafu the ghost, ninjifu the ninja, charamofu the dino, chosen by
+how the child is cared for), evolution, old age, death and restart, the content pipeline with
+hot preview, 16 golden replays, five property tests, native-vs-wasm parity in CI, and
+multi-device sync (an axum blob store plus a browser client under Settings; the server is
+built and Dockerised but not hosted yet). Next: Phase 6 (battle, more species), Phase 7
 (ESP32). Start with [docs/README.md](docs/README.md).
 
 ## Developing
