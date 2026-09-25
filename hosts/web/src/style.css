@@ -1,287 +1,219 @@
-:root {
-  --bezel-bg: #111;
+/* The page around the screen (docs/hosts/web.md). Tokens and component classes come from the
+   design system in packages/vpet-ds, shared with Claude Design; this file only lays the page
+   out and styles the few host-only bits (dev panel, overlays, key hints). */
+@import "../../../packages/vpet-ds/src/styles.css";
+
+html,
+body {
+  margin: 0;
+  height: 100%;
 }
 
 body {
-  margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* --- header / footer ------------------------------------------------------------------------ */
+.page-head {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 24px 16px;
-  background: #1a1a1a;
-  font-family: system-ui, sans-serif;
-  color: #eee;
-  box-sizing: border-box;
+  justify-content: space-between;
+  gap: var(--vp-space-2);
+  padding: var(--vp-space-3) var(--vp-space-4);
+}
+.page-title {
+  font: 700 30px/1 var(--vp-font-display);
+  letter-spacing: 0.01em;
+}
+.page-nav {
+  display: flex;
+  gap: var(--vp-space-1);
+}
+.narrow-only { display: none; }
+@media (max-width: 480px) {
+  .wide-only { display: none; }
+  .narrow-only { display: inline; }
+  .page-head { padding: var(--vp-space-2) var(--vp-space-3); }
+}
+.page-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--vp-space-2) var(--vp-space-5) var(--vp-space-3);
 }
 
 #banner {
-  background: #7a1f1f;
-  color: #fff;
-  padding: 8px 16px;
-  border-radius: 4px;
-  max-width: 480px;
+  margin: 0 var(--vp-space-4);
+  padding: var(--vp-space-2) var(--vp-space-4);
+  background: var(--vp-red);
+  color: var(--vp-white);
+  border: var(--vp-line) solid var(--vp-ink);
+  border-radius: var(--vp-radius-sm);
+  font-weight: 600;
   text-align: center;
 }
+#banner[hidden] { display: none; }
 
-#bezel {
+/* --- the device ---------------------------------------------------------------------------- */
+.page-main {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 0 var(--vp-space-4);
+  overflow: hidden;
+}
+.stage {
   position: relative;
-  background: var(--bezel-bg);
-  padding: 24px;
-  border-radius: 12px;
+  display: grid;
+  justify-items: center;
+  gap: var(--vp-space-3);
+  padding-top: 16px; /* room for the bow */
 }
-
-body[data-theme="lcd"] #bezel {
-  --bezel-bg: #8a9878;
+.attention {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 200ms;
+  pointer-events: none;
 }
+.attention.active { opacity: 1; }
 
-#screen {
-  width: 512px;
-  /* aspect-ratio (not a fixed height) keeps the 64x32 bitmap's 2:1 ratio once `max-width`
-     shrinks it on a narrow viewport -- a fixed height here let width and height scale by
-     different factors, distorting every sprite and making crisp-edges round pixel columns
-     and rows inconsistently (looked like missing/broken chunks of the pet). */
+/* The screen is a 64x32 canvas; `aspect-ratio` (never a fixed height) keeps pixels square when
+   `width` shrinks on a phone. Palette lives in blit.ts and matches the DS screen tokens. */
+.screen {
+  width: min(320px, 68vw);
   aspect-ratio: 2 / 1;
-  max-width: 80vw;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  display: block;
 }
-
-#attention {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: transparent;
+@media (max-height: 640px) {
+  .screen { width: min(256px, 60vw); }
 }
-
-#attention.active {
-  background: #ff5050;
-  box-shadow: 0 0 6px 2px #ff5050;
+/* Phones: the DS shell's 44px side padding plus the screen outgrows a 390px viewport. */
+@media (max-width: 480px) {
+  .screen { width: min(320px, 60vw); }
+  #shell { padding-left: 26px; padding-right: 26px; }
+  .stage { padding-top: 12px; }
 }
-
-#buttons {
-  display: flex;
-  gap: 12px;
-}
-
-#buttons button {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: none;
-  background: #444;
-  color: #fff;
-  font-size: 1.1rem;
-  cursor: pointer;
-  touch-action: manipulation;
+.vp-shellbutton {
+  touch-action: none;
+  -webkit-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none;
 }
 
-#buttons button:active {
-  background: #666;
+.key-hints {
+  display: flex;
+  gap: var(--vp-space-4);
+  font-size: 14px;
+  color: var(--vp-ink-soft);
+}
+.key-hints strong { font-family: var(--vp-font-display); }
+@media (hover: none) and (pointer: coarse) {
+  .key-hints { display: none; }
 }
 
+/* --- overlays: settings, help ---------------------------------------------------------------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+.overlay[hidden] { display: none; }
+.overlay--dim {
+  background: rgba(39, 30, 56, 0.35);
+  display: grid;
+  place-items: center;
+  padding: var(--vp-space-5);
+}
+.overlay--dim .vp-sheet {
+  width: min(100%, 520px);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  box-sizing: border-box;
+}
+#settings .vp-sheet {
+  position: absolute;
+  top: 64px;
+  right: var(--vp-space-4);
+  width: min(calc(100vw - 32px), 340px);
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+}
+.help-list {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: var(--vp-space-2);
+  line-height: 1.45;
+}
+.settings-group { display: grid; gap: var(--vp-space-2); }
+.settings-group__label { font: 600 15px var(--vp-font-display); }
+.settings-group--rule { padding-top: var(--vp-space-3); border-top: 2px dashed var(--vp-lilac); }
+.settings-row { display: flex; gap: var(--vp-space-2); flex-wrap: wrap; }
+.settings-status { margin: 0; font-size: var(--vp-text-sm); color: var(--vp-ink-soft); }
+.settings-status[data-level="ok"] { color: var(--vp-green); }
+.settings-status[data-level="warn"] { color: var(--vp-orange); }
+.settings-status[data-level="error"] { color: var(--vp-red); }
+
+/* --- dev panel (localhost or ?dev) ---------------------------------------------------------- */
+.devbox {
+  position: fixed;
+  left: var(--vp-space-3);
+  bottom: var(--vp-space-3);
+  z-index: 5;
+  display: grid;
+  gap: var(--vp-space-2);
+  justify-items: start;
+}
+.devbox[hidden] { display: none; }
 #devpanel {
-  width: 100%;
-  max-width: 640px;
-  background: #222;
-  border-radius: 8px;
-  padding: 12px 16px;
-  font-size: 0.85rem;
+  width: min(calc(100vw - 24px), 300px);
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  padding: var(--vp-space-3) var(--vp-space-4) var(--vp-space-4);
+  font-size: 13px;
 }
-
-#devpanel section {
-  margin-bottom: 12px;
-}
-
+#devpanel[hidden] { display: none; }
+#devpanel section { margin-bottom: var(--vp-space-3); }
 #devpanel h3 {
-  margin: 0 0 6px;
-  font-size: 0.9rem;
-  color: #9fe8ff;
+  margin: 0 0 var(--vp-space-1);
+  font: 600 14px var(--vp-font-display);
 }
-
+#devpanel button {
+  margin: 0 4px 4px 0;
+  padding: 4px 10px;
+  border: 2px solid var(--vp-ink);
+  border-radius: var(--vp-radius-pill);
+  background: var(--vp-lilac);
+  color: var(--vp-ink);
+  font: 600 12px var(--vp-font-display);
+  cursor: pointer;
+}
+#devpanel input,
+#devpanel textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border: 2px solid var(--vp-ink);
+  border-radius: var(--vp-radius-sm);
+  background: var(--vp-cream);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
 table.inspect {
   border-collapse: collapse;
   width: 100%;
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-
 table.inspect td {
-  padding: 2px 8px 2px 0;
-  border-bottom: 1px solid #333;
+  padding: 1px 8px 1px 0;
+  border-bottom: 1px solid var(--vp-lilac-soft);
 }
-
-table.inspect td:first-child {
-  color: #aaa;
-  font-family: monospace;
-}
-
-#devpanel button {
-  margin: 0 6px 6px 0;
-  padding: 4px 10px;
-  cursor: pointer;
-}
-
-#devpanel input[type="number"] {
-  width: 120px;
-}
-
-/* --- sync: gear, status dot, settings sheet (docs/hosts/web.md "Sync") ------------------- */
-
-#gear {
-  position: absolute;
-  bottom: 6px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: #888;
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  touch-action: manipulation;
-}
-
-#gear:hover {
-  color: #ddd;
-}
-
-#syncdot {
-  position: absolute;
-  bottom: 14px;
-  left: 12px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #444;
-}
-
-#syncdot[data-level="ok"] {
-  background: #4caf50;
-}
-
-#syncdot[data-level="warn"] {
-  background: #ffb300;
-}
-
-#syncdot[data-level="error"] {
-  background: #ff5050;
-}
-
-#settings {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 10;
-}
-
-#settings[hidden] {
-  display: none;
-}
-
-#settings .sheet {
-  width: 100%;
-  max-width: 480px;
-  background: #222;
-  border-radius: 12px 12px 0 0;
-  padding: 16px 20px 24px;
-  box-sizing: border-box;
-  font-size: 0.95rem;
-}
-
-#settings .sheet-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-#settings h2 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #9fe8ff;
-}
-
-#settings .sheet-head button {
-  background: none;
-  border: none;
-  color: #aaa;
-  font-size: 1.4rem;
-  cursor: pointer;
-}
-
-#settings .hint {
-  color: #aaa;
-  font-size: 0.85rem;
-  margin: 8px 0 12px;
-}
-
-#settings label {
-  display: block;
-  margin: 8px 0;
-  color: #ccc;
-}
-
-#settings input {
-  display: block;
-  width: 100%;
-  margin-top: 4px;
-  padding: 8px;
-  box-sizing: border-box;
-  border-radius: 6px;
-  border: 1px solid #444;
-  background: #111;
-  color: #eee;
-  font-size: 1rem;
-}
-
-#settings .row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-#settings .row button {
-  padding: 8px 14px;
-  border-radius: 6px;
-  border: none;
-  background: #444;
-  color: #fff;
-  cursor: pointer;
-}
-
-#settings .row button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-#settings .row button.danger {
-  background: #7a1f1f;
-}
-
-#settings .status {
-  margin: 12px 0 0;
-  color: #aaa;
-  font-size: 0.85rem;
-}
-
-#settings .status[data-level="ok"] {
-  color: #4caf50;
-}
-
-#settings .status[data-level="warn"] {
-  color: #ffb300;
-}
-
-#settings .status[data-level="error"] {
-  color: #ff5050;
-}
+table.inspect td:first-child { color: var(--vp-ink-soft); }

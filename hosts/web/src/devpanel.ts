@@ -99,6 +99,7 @@ export function mountDevPanel(container: HTMLElement, hooks: DevPanelHooks): Dev
     </section>
     <section data-panel="theme">
       <h3>theme</h3>
+      <button data-theme="ink">Ink</button>
       <button data-theme="oled">OLED</button>
       <button data-theme="lcd">LCD</button>
     </section>

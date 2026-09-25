@@ -21,10 +21,21 @@ const io    = new Uint8Array(mem.buffer, e.vpet_io_ptr(), 2048);
 
 ## Blitter
 
-A 64x32 canvas with `putImageData` from the 256-byte frame, scaled by CSS
-(`width: 512px; image-rendering: pixelated`). Theme colours (OLED cyan-on-black default, LCD
-green as an option) are applied when filling the `ImageData`. Sixty-four bytes in, one
+A 64x32 canvas with `putImageData` from the 256-byte frame, scaled by CSS (`aspect-ratio:
+2 / 1; image-rendering: pixelated`). The default palette is `ink`: ink pixels on a warm pale
+panel, the design system's `--vp-screen-on`/`--vp-screen-off`. OLED cyan-on-black and LCD green
+remain as dev-panel options that match `spritekit render --style`. Sixty-four bytes in, one
 `putImageData` out; nothing else.
+
+## The page around the screen
+
+The device body, header, and sheets are plain HTML styled with `@vpet/ds`
+(`packages/vpet-ds/src/styles.css`, imported by `style.css`): the same tokens and classes Claude
+Design builds with, so a mockup and the shipped page share one stylesheet and there is no
+framework at runtime (ADR 0010 still holds). The shell is the DS `vp-shell` markup with the
+canvas in its screen window and three `vp-shellbutton`s; its `data-tone` (pink / lilac / orange)
+comes from Settings. Phones: the shell shrinks to the viewport, keyboard hints are hidden on
+touch devices, and the dev panel starts folded.
 
 ## Ticking
 
@@ -45,7 +56,8 @@ the held mask; `pointercancel` and `blur` clear it. Touch works without special 
 
 - IndexedDB, raw API, one object store, key `pet:default` -> `Uint8Array`. About 40 lines.
   Chosen over localStorage because it stores bytes natively.
-- localStorage only for host settings: server URL, token, pet id, theme, dev clock offset.
+- localStorage only for host settings: server URL, token, pet id, theme, sound, shell colour,
+  dev clock offset.
 - Save on `SAVE_NEEDED` debounced 500 ms, a checkpoint every 30 s, and on `pagehide`.
 - Server sync as in [SYNC.md](../SYNC.md), debounced 2 s for pushes.
 
@@ -73,13 +85,13 @@ at that `sim_now` until its own clock catches up (see `advance_to` in `vpet-core
 
 ## Settings sheet
 
-The gear in the bezel corner (no `?dev` needed, phone-friendly) opens a sheet with the server
-URL, token (password field), pet id, **Save** (which reconciles at once), **Sync now**,
+**Settings** in the header (no `?dev` needed, phone-friendly) opens a sheet with sound on/off,
+the shell colour, and the sync section: server URL, token (password field), pet id, **Save** (which reconciles at once), **Sync now**,
 **Start over on server** (`DELETE` behind a confirm dialog; the local pet is kept and uploaded
 on its next change) and a status line: `sync off`, `synced <n>s ago`, `offline, playing
 locally`, `adopted the newer save from the server`, `server needs updating; playing locally`.
-The dot next to the gear mirrors the status level (`data-level` off / ok / warn / error) and
-carries the same text as its `title`.
+The dot in the footer mirrors the status level (`data-level` off / ok / warn / error) and
+carries the same text as its `title`. **How to play** opens a static help sheet.
 
 ## Dev panel
 

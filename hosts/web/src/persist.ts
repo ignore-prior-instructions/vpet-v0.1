@@ -42,12 +42,38 @@ export async function putBlob(blob: Uint8Array): Promise<void> {
 const THEME_KEY = "vpet.theme";
 const DEV_OFFSET_KEY = "vpet.devOffsetMs";
 
-export function getTheme(): "oled" | "lcd" {
-  return localStorage.getItem(THEME_KEY) === "lcd" ? "lcd" : "oled";
+export type Theme = "ink" | "oled" | "lcd";
+export type Tone = "pink" | "lilac" | "orange";
+
+const SOUND_KEY = "vpet.sound";
+const TONE_KEY = "vpet.tone";
+
+export function getTheme(): Theme {
+  const t = localStorage.getItem(THEME_KEY);
+  return t === "oled" || t === "lcd" ? t : "ink";
 }
 
-export function setTheme(theme: "oled" | "lcd"): void {
+export function setTheme(theme: Theme): void {
   localStorage.setItem(THEME_KEY, theme);
+}
+
+/** Beep on the core's BEEP flag. Default on. */
+export function getSound(): boolean {
+  return localStorage.getItem(SOUND_KEY) !== "off";
+}
+
+export function setSound(on: boolean): void {
+  localStorage.setItem(SOUND_KEY, on ? "on" : "off");
+}
+
+/** The shell's body colour (`data-tone` on the device, packages/vpet-ds). Default pink. */
+export function getTone(): Tone {
+  const t = localStorage.getItem(TONE_KEY);
+  return t === "lilac" || t === "orange" ? t : "pink";
+}
+
+export function setTone(tone: Tone): void {
+  localStorage.setItem(TONE_KEY, tone);
 }
 
 /** Dev-only clock offset in ms, added to `Date.now()`. Persisted so a reload doesn't lose it
