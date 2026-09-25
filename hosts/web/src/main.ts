@@ -67,13 +67,26 @@ async function main(): Promise<void> {
   const buttonA = document.getElementById("btn-a") as HTMLElement;
   const buttonB = document.getElementById("btn-b") as HTMLElement;
   const buttonC = document.getElementById("btn-c") as HTMLElement;
+  const devBoxEl = document.getElementById("devbox") as HTMLElement;
+  const devToggleEl = document.getElementById("dev-toggle") as HTMLElement;
   const devPanelEl = document.getElementById("devpanel") as HTMLElement;
   const settingsEl = document.getElementById("settings") as HTMLElement;
   const gearEl = document.getElementById("gear") as HTMLElement;
   const syncDotEl = document.getElementById("syncdot") as HTMLElement;
+  const shellEl = document.getElementById("shell") as HTMLElement;
+  const helpEl = document.getElementById("help") as HTMLElement;
+  const helpBtnEl = document.getElementById("help-btn") as HTMLElement;
 
   let theme: Theme = persist.getTheme();
-  document.body.dataset.theme = theme;
+  let sound = persist.getSound();
+  shellEl.dataset.tone = persist.getTone();
+
+  // Help sheet: static markup in index.html, just shown/hidden here.
+  helpBtnEl.addEventListener("click", () => (helpEl.hidden = !helpEl.hidden));
+  helpEl.querySelector("[data-close]")?.addEventListener("click", () => (helpEl.hidden = true));
+  helpEl.addEventListener("click", (e) => {
+    if (e.target === helpEl) helpEl.hidden = true;
+  });
 
   const core = await Core.load(`${import.meta.env.BASE_URL}vpet.wasm`);
   const input = new Input({ a: buttonA, b: buttonB, c: buttonC });
@@ -229,6 +242,12 @@ async function main(): Promise<void> {
     onSyncNow() {
       void pullAndReconcile();
     },
+    onSound(on) {
+      sound = on;
+    },
+    onTone(tone) {
+      shellEl.dataset.tone = tone;
+    },
     onStartOver() {
       if (!client) return;
       client
@@ -243,7 +262,14 @@ async function main(): Promise<void> {
 
   let devPanel: DevPanel | null = null;
   if (isDevMode()) {
-    devPanelEl.hidden = false;
+    devBoxEl.hidden = false;
+    // Folded by default on a phone, where the panel would cover the device.
+    devPanelEl.hidden = window.matchMedia("(max-width: 480px)").matches;
+    devToggleEl.textContent = devPanelEl.hidden ? "Dev ▴" : "Dev ▾";
+    devToggleEl.addEventListener("click", () => {
+      devPanelEl.hidden = !devPanelEl.hidden;
+      devToggleEl.textContent = devPanelEl.hidden ? "Dev ▴" : "Dev ▾";
+    });
     devPanel = mountDevPanel(devPanelEl, {
       core,
       recorder,
@@ -251,7 +277,6 @@ async function main(): Promise<void> {
       setTheme: (t) => {
         theme = t;
         persist.setTheme(t);
-        document.body.dataset.theme = t;
       },
       getDevOffsetMs: persist.getDevOffsetMs,
       setDevOffsetMs: persist.setDevOffsetMs,
@@ -278,7 +303,7 @@ async function main(): Promise<void> {
       scheduleSave();
       schedulePush();
     }
-    if (flags & Flags.BEEP) {
+    if (flags & Flags.BEEP && sound) {
       beep();
     }
     attentionBadge.classList.toggle("active", (flags & Flags.ATTENTION) !== 0);
