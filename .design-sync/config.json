@@ -1,0 +1,31 @@
+{
+  "pkg": "@vpet/ds",
+  "globalName": "VpetDs",
+  "shape": "package",
+  "buildCmd": "npm --prefix packages/vpet-ds run build",
+  "cssEntry": "dist/styles.css",
+  "srcDir": "src/components",
+  "runtimeFontPrefixes": [
+    "Fredoka",
+    "Nunito"
+  ],
+  "overrides": {
+    "IconBar": {
+      "cardMode": "column"
+    },
+    "PetSprite": {
+      "cardMode": "column"
+    },
+    "Screen": {
+      "cardMode": "column"
+    },
+    "Shell": {
+      "cardMode": "column"
+    },
+    "Sprite": {
+      "cardMode": "column"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md",
+  "projectId": "060cf6a2-d0f8-4206-a686-16c3c713f2a1"
+}

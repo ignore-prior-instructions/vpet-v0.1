@@ -1,0 +1,307 @@
+/* @vpet/ds tokens and component styles. Colours are sampled from the colour concept sketch
+   (docs/art/LINEAGE.md): dino orange, ghost pink, ninja purple, the ink outline, lilac, and the
+   bow red. Cutesy Tamagotchi, not retro LCD. */
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap");
+
+:root {
+  /* palette */
+  --vp-ink: #271e38;
+  --vp-ink-soft: #503c70;
+  --vp-pink: #fc7eaf;
+  --vp-pink-soft: #ffc9de;
+  --vp-pink-pale: #fff0f6;
+  --vp-orange: #ff965d;
+  --vp-orange-soft: #ffd2b8;
+  --vp-purple: #503c70;
+  --vp-lilac: #c1afdc;
+  --vp-lilac-soft: #e8dff5;
+  --vp-red: #f75564;
+  --vp-green: #6fc46a;
+  --vp-sky: #9dcdf2;
+  --vp-cream: #fff8ec;
+  --vp-paper: #fff5f9;
+  --vp-white: #ffffff;
+
+  /* the 1-bit screen: ink pixels on a warm pale screen */
+  --vp-screen-on: var(--vp-ink);
+  --vp-screen-off: #fdf1ea;
+  --vp-screen-border: var(--vp-ink);
+
+  /* type */
+  --vp-font-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --vp-font-body: "Nunito", system-ui, sans-serif;
+  --vp-text-sm: 0.85rem;
+  --vp-text-md: 1rem;
+  --vp-text-lg: 1.25rem;
+  --vp-text-xl: 1.6rem;
+
+  /* shape */
+  --vp-line: 3px;
+  --vp-radius-sm: 10px;
+  --vp-radius-md: 18px;
+  --vp-radius-lg: 28px;
+  --vp-radius-pill: 999px;
+  --vp-shadow: 0 4px 0 var(--vp-ink);
+  --vp-shadow-soft: 0 6px 18px rgba(39, 30, 56, 0.16);
+
+  /* spacing */
+  --vp-space-1: 4px;
+  --vp-space-2: 8px;
+  --vp-space-3: 12px;
+  --vp-space-4: 16px;
+  --vp-space-5: 24px;
+  --vp-space-6: 32px;
+}
+
+/* Tone: recolours a Shell / Button / Sheet with one species' colour. */
+[data-tone="pink"] { --vp-tone: var(--vp-pink); --vp-tone-soft: var(--vp-pink-soft); --vp-tone-pale: var(--vp-pink-pale); }
+[data-tone="orange"] { --vp-tone: var(--vp-orange); --vp-tone-soft: var(--vp-orange-soft); --vp-tone-pale: #fff4ec; }
+[data-tone="lilac"] { --vp-tone: var(--vp-lilac); --vp-tone-soft: var(--vp-lilac-soft); --vp-tone-pale: #f6f1fc; }
+
+.vp-root {
+  font-family: var(--vp-font-body);
+  color: var(--vp-ink);
+  background: var(--vp-paper);
+}
+
+/* --- Screen ------------------------------------------------------------------------------- */
+.vp-screen {
+  display: block;
+  background: var(--vp-screen-off);
+  border: var(--vp-line) solid var(--vp-screen-border);
+  border-radius: var(--vp-radius-sm);
+  box-sizing: content-box;
+  image-rendering: pixelated;
+}
+.vp-screen svg { display: block; width: 100%; height: 100%; }
+.vp-screen path { fill: var(--vp-screen-on); shape-rendering: crispEdges; }
+.vp-screen--inverted { background: var(--vp-screen-on); }
+.vp-screen--inverted path { fill: var(--vp-screen-off); }
+
+/* --- Sprite / PixelText ------------------------------------------------------------------- */
+.vp-sprite { display: inline-block; vertical-align: middle; line-height: 0; }
+.vp-sprite svg { display: block; }
+.vp-sprite path { fill: var(--vp-sprite-color, var(--vp-ink)); shape-rendering: crispEdges; }
+.vp-pixeltext { display: inline-block; vertical-align: middle; line-height: 0; }
+.vp-pixeltext svg { display: block; }
+.vp-pixeltext path { fill: var(--vp-sprite-color, var(--vp-ink)); shape-rendering: crispEdges; }
+
+/* --- Shell (the device body) -------------------------------------------------------------- */
+.vp-shell {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vp-space-4);
+  padding: var(--vp-space-6) 44px var(--vp-space-5);
+  /* An egg, not a circle: taller than wide, broad around the screen, tapering toward the buttons. */
+  aspect-ratio: 4 / 5;
+  box-sizing: border-box;
+  background: var(--vp-tone-soft, var(--vp-pink-soft));
+  border: var(--vp-line) solid var(--vp-ink);
+  border-radius: 50% 50% 50% 50% / 54% 54% 46% 46%;
+  box-shadow: var(--vp-shadow), var(--vp-shadow-soft);
+  font-family: var(--vp-font-display);
+  color: var(--vp-ink);
+}
+.vp-shell__bow {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-6deg);
+  width: 46px;
+  height: 26px;
+}
+.vp-shell__bow::before,
+.vp-shell__bow::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 20px;
+  height: 22px;
+  background: var(--vp-red);
+  border: var(--vp-line) solid var(--vp-ink);
+  border-radius: 60% 60% 60% 60% / 70% 70% 50% 50%;
+}
+.vp-shell__bow::before { left: 0; transform: rotate(-18deg); }
+.vp-shell__bow::after { right: 0; transform: rotate(18deg); }
+.vp-shell__bow-knot {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  transform: translateX(-50%);
+  background: var(--vp-red);
+  border: var(--vp-line) solid var(--vp-ink);
+  border-radius: 50%;
+}
+.vp-shell__name {
+  font-size: var(--vp-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vp-ink-soft);
+}
+.vp-shell__screen {
+  padding: var(--vp-space-3);
+  background: var(--vp-white);
+  border: var(--vp-line) solid var(--vp-ink);
+  border-radius: var(--vp-radius-md);
+}
+.vp-shell__buttons {
+  display: flex;
+  gap: var(--vp-space-4);
+  align-items: flex-end;
+}
+.vp-shell__buttons > :nth-child(2) { margin-bottom: 10px; }
+.vp-shell__blush {
+  position: absolute;
+  bottom: 30%;
+  width: 18px;
+  height: 10px;
+  background: var(--vp-tone, var(--vp-pink));
+  opacity: 0.55;
+  border-radius: 50%;
+}
+.vp-shell__blush--left { left: 14px; }
+.vp-shell__blush--right { right: 14px; }
+
+/* --- ShellButton (the physical A/B/C buttons) --------------------------------------------- */
+.vp-shellbutton {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: var(--vp-line) solid var(--vp-ink);
+  border-radius: 50%;
+  background: var(--vp-tone, var(--vp-pink));
+  color: var(--vp-ink);
+  font: 700 var(--vp-text-md) var(--vp-font-display);
+  box-shadow: 0 4px 0 var(--vp-ink);
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: transform 60ms, box-shadow 60ms;
+}
+.vp-shellbutton:active,
+.vp-shellbutton--pressed {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--vp-ink);
+}
+.vp-shellbutton--sm { width: 34px; height: 34px; font-size: var(--vp-text-sm); }
+.vp-shellbutton--lg { width: 56px; height: 56px; font-size: var(--vp-text-lg); }
+
+/* --- Button (UI) -------------------------------------------------------------------------- */
+.vp-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vp-space-2);
+  padding: 10px 18px;
+  border: var(--vp-line) solid var(--vp-ink);
+  border-radius: var(--vp-radius-pill);
+  background: var(--vp-pink);
+  color: var(--vp-ink);
+  font: 600 var(--vp-text-md) var(--vp-font-display);
+  box-shadow: 0 3px 0 var(--vp-ink);
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 60ms, box-shadow 60ms;
+}
+.vp-button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--vp-ink); }
+.vp-button:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: 0 3px 0 var(--vp-ink); }
+.vp-button--secondary { background: var(--vp-lilac); }
+.vp-button--danger { background: var(--vp-red); color: var(--vp-white); }
+.vp-button--ghost { background: transparent; box-shadow: none; border-color: transparent; }
+.vp-button--ghost:active { transform: none; box-shadow: none; }
+.vp-button--sm { padding: 6px 12px; font-size: var(--vp-text-sm); }
+.vp-button--lg { padding: 14px 26px; font-size: var(--vp-text-lg); }
+
+/* --- Sheet -------------------------------------------------------------------------------- */
+.vp-sheet {
+  width: 100%;
+  max-width: 420px;
+  box-sizing: border-box;
+  padding: var(--vp-space-4) var(--vp-space-5) var(--vp-space-5);
+  background: var(--vp-white);
+  border: var(--vp-line) solid var(--vp-ink);
+  border-radius: var(--vp-radius-lg);
+  box-shadow: var(--vp-shadow), var(--vp-shadow-soft);
+  font-family: var(--vp-font-body);
+  color: var(--vp-ink);
+}
+.vp-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vp-space-3);
+  margin-bottom: var(--vp-space-2);
+}
+.vp-sheet__title {
+  margin: 0;
+  font: 600 var(--vp-text-xl) var(--vp-font-display);
+}
+.vp-sheet__hint { margin: 0 0 var(--vp-space-4); color: var(--vp-ink-soft); font-size: var(--vp-text-sm); }
+.vp-sheet__body { display: flex; flex-direction: column; gap: var(--vp-space-3); }
+.vp-sheet__row { display: flex; flex-wrap: wrap; gap: var(--vp-space-2); margin-top: var(--vp-space-2); }
+
+/* --- Field -------------------------------------------------------------------------------- */
+.vp-field { display: flex; flex-direction: column; gap: var(--vp-space-1); font-family: var(--vp-font-body); }
+.vp-field__label { font: 600 var(--vp-text-sm) var(--vp-font-display); color: var(--vp-ink-soft); }
+.vp-field__input {
+  padding: 10px 14px;
+  border: var(--vp-line) solid var(--vp-ink);
+  border-radius: var(--vp-radius-sm);
+  background: var(--vp-cream);
+  color: var(--vp-ink);
+  font: 400 var(--vp-text-md) var(--vp-font-body);
+  outline: none;
+}
+.vp-field__input:focus { border-color: var(--vp-pink); box-shadow: 0 0 0 3px var(--vp-pink-soft); }
+.vp-field__help { font-size: var(--vp-text-sm); color: var(--vp-ink-soft); }
+
+/* --- HeartMeter --------------------------------------------------------------------------- */
+.vp-heartmeter { display: inline-flex; align-items: center; gap: var(--vp-space-3); font-family: var(--vp-font-display); }
+.vp-heartmeter__label { min-width: 5em; font-weight: 600; color: var(--vp-ink-soft); }
+.vp-heartmeter__hearts { display: inline-flex; gap: 2px; --vp-sprite-color: var(--vp-red); }
+
+/* --- StatusDot ---------------------------------------------------------------------------- */
+.vp-statusdot { display: inline-flex; align-items: center; gap: var(--vp-space-2); font: 600 var(--vp-text-sm) var(--vp-font-display); color: var(--vp-ink-soft); }
+.vp-statusdot__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--vp-ink);
+  background: var(--vp-lilac);
+}
+.vp-statusdot--ok .vp-statusdot__dot { background: var(--vp-green); }
+.vp-statusdot--warn .vp-statusdot__dot { background: var(--vp-orange); }
+.vp-statusdot--error .vp-statusdot__dot { background: var(--vp-red); }
+
+/* --- MenuIcon / IconBar ------------------------------------------------------------------- */
+.vp-menuicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: var(--vp-line) solid var(--vp-ink);
+  border-radius: var(--vp-radius-sm);
+  background: var(--vp-white);
+}
+.vp-menuicon--selected { background: var(--vp-ink); --vp-sprite-color: var(--vp-white); }
+.vp-iconbar { display: inline-flex; gap: var(--vp-space-2); }
+
+/* --- Pill --------------------------------------------------------------------------------- */
+.vp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vp-space-1);
+  padding: 4px 12px;
+  border: 2px solid var(--vp-ink);
+  border-radius: var(--vp-radius-pill);
+  background: var(--vp-tone, var(--vp-lilac));
+  font: 600 var(--vp-text-sm) var(--vp-font-display);
+  color: var(--vp-ink);
+}
