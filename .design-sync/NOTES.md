@@ -18,7 +18,9 @@ here redraws art; `scripts/sprites.mjs` reads `tests/fixtures/packed.json` (spri
 - The `hatched` scene in `tests/golden/*.expected` is the hatch flash since PR #7; a baby idle
   frame is `feed_meal.expected` `after_eating`.
 - Screen/Shell previews inline golden frames as 32-row string arrays (previews can only import
-  from the package).
+  from the package). No golden reaches lalafu's own adult; the Shell `Lalafu` card's ghost frame
+  is the `lalafu/adult/idle_a` sprite blitted at `PET_HOME_X` (16). Shell captions are species
+  names, so the `Baby` card has none: a baby is not a species yet.
 
 ## Known render warns
 
