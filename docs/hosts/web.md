@@ -86,12 +86,14 @@ at that `sim_now` until its own clock catches up (see `advance_to` in `vpet-core
 ## Settings sheet
 
 **Settings** in the header (no `?dev` needed, phone-friendly) opens a sheet with sound on/off,
-the shell colour, and the sync section: server URL, token (password field), pet id, **Save** (which reconciles at once), **Sync now**,
+the shell colour, **New egg** (replaces a living pet through the host's own `reset` path, the
+one boot uses; a dead pet restarts with A+C on the tombstone), and the sync section: server URL, token (password field), pet id, **Save** (which reconciles at once), **Sync now**,
 **Start over on server** (`DELETE` behind a confirm dialog; the local pet is kept and uploaded
 on its next change) and a status line: `sync off`, `synced <n>s ago`, `offline, playing
 locally`, `adopted the newer save from the server`, `server needs updating; playing locally`.
-The dot in the footer mirrors the status level (`data-level` off / ok / warn / error) and
-carries the same text as its `title`. **How to play** opens a static help sheet.
+The footer shows the status dot with its text next to it (`data-level` off / ok / warn /
+error); clicking it opens Settings. **How to play** opens a static help sheet, which links to
+the **cheat sheet** (also at `?cheatsheet`): the evolution rules in plain words.
 
 ## Dev panel
 
