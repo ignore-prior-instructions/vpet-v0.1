@@ -76,6 +76,7 @@ async function main(): Promise<void> {
   const shellEl = document.getElementById("shell") as HTMLElement;
   const helpEl = document.getElementById("help") as HTMLElement;
   const helpBtnEl = document.getElementById("help-btn") as HTMLElement;
+  const cheatEl = document.getElementById("cheatsheet") as HTMLElement;
 
   let theme: Theme = persist.getTheme();
   let sound = persist.getSound();
@@ -87,6 +88,20 @@ async function main(): Promise<void> {
   helpEl.addEventListener("click", (e) => {
     if (e.target === helpEl) helpEl.hidden = true;
   });
+  // Cheat sheet: which adult you get and why. Reachable from the help sheet, or straight
+  // from the URL with `?cheatsheet`.
+  const openCheat = () => {
+    helpEl.hidden = true;
+    cheatEl.hidden = false;
+  };
+  helpEl.querySelector("[data-open-cheatsheet]")?.addEventListener("click", openCheat);
+  cheatEl.querySelector("[data-close]")?.addEventListener("click", () => (cheatEl.hidden = true));
+  cheatEl.addEventListener("click", (e) => {
+    if (e.target === cheatEl) cheatEl.hidden = true;
+  });
+  if (new URLSearchParams(location.search).has("cheatsheet")) openCheat();
+  // The footer status is a button too: it opens Settings, where the full sync status lives.
+  syncDotEl.addEventListener("click", () => gearEl.click());
 
   const core = await Core.load(`${import.meta.env.BASE_URL}vpet.wasm`);
   const input = new Input({ a: buttonA, b: buttonB, c: buttonC });
@@ -244,6 +259,16 @@ async function main(): Promise<void> {
     },
     onSound(on) {
       sound = on;
+    },
+    onNewEgg() {
+      const seed = randomSeed();
+      const n = now();
+      core.reset(n, seed);
+      recorder.reset(n, seed);
+      blit(ctx!, core.frame(), theme);
+      tick();
+      saveNow();
+      schedulePush();
     },
     onTone(tone) {
       shellEl.dataset.tone = tone;

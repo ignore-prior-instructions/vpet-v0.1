@@ -14,6 +14,9 @@ export interface SettingsHooks {
   onStartOver(): void;
   onSound(on: boolean): void;
   onTone(tone: persist.Tone): void;
+  /** Replace the pet with a fresh egg (after the user confirmed). The host's own `reset`
+   * path, the same one boot uses; the core never learns why. */
+  onNewEgg(): void;
 }
 
 export interface SettingsSheet {
@@ -48,6 +51,14 @@ export function mountSettings(root: HTMLElement, gear: HTMLElement, dot: HTMLEle
           <span class="settings-group__label">Shell colour</span>
           <div class="settings-row">
             ${TONES.map(([id, label]) => `<span data-tone="${id}"><button type="button" class="vp-button vp-button--sm" data-tone-pick="${id}">${label}</button></span>`).join("")}
+          </div>
+        </div>
+        <div class="settings-group settings-group--rule">
+          <span class="settings-group__label">Pet</span>
+          <p class="vp-sheet__hint">A dead pet restarts by holding A and C together on the tombstone. This
+            replaces a living pet.</p>
+          <div class="settings-row">
+            <button type="button" class="vp-button vp-button--danger vp-button--sm" data-new-egg>New egg</button>
           </div>
         </div>
         <div class="settings-group settings-group--rule">
@@ -130,6 +141,13 @@ export function mountSettings(root: HTMLElement, gear: HTMLElement, dot: HTMLEle
     }),
   );
 
+  q("[data-new-egg]").addEventListener("click", () => {
+    if (confirm("Replace your pet with a new egg? The current pet is gone for good.")) {
+      hooks.onNewEgg();
+      close();
+    }
+  });
+
   q("[data-save]").addEventListener("click", () => {
     const s: SyncSettings = { url: url.value, token: token.value, petId: pet.value };
     setSettings(s);
@@ -150,7 +168,9 @@ export function mountSettings(root: HTMLElement, gear: HTMLElement, dot: HTMLEle
       status.dataset.level = level;
       dot.dataset.level = level;
       dot.title = text;
-      dot.className = `vp-statusdot vp-statusdot--${DOT_CLASS[level]}`;
+      dot.className = `vp-statusdot vp-statusdot--${DOT_CLASS[level]} footer-status`;
+      const label = dot.querySelector("#syncstatus");
+      if (label) label.textContent = text;
     },
   };
 }

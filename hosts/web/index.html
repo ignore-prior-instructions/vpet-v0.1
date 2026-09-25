@@ -48,9 +48,10 @@
     </main>
 
     <footer class="page-foot">
-      <span id="syncdot" class="vp-statusdot vp-statusdot--idle" data-level="off" title="sync off">
+      <button id="syncdot" type="button" class="vp-statusdot vp-statusdot--idle footer-status" data-level="off" title="sync off">
         <span class="vp-statusdot__dot"></span>
-      </span>
+        <span id="syncstatus">sync off</span>
+      </button>
     </footer>
 
     <div id="settings" class="overlay" hidden></div>
@@ -69,6 +70,47 @@
           <li>If it dies, hold A and C together on the tombstone for a new egg.</li>
           <li>It keeps living while this tab is closed.</li>
         </ul>
+        <div class="vp-sheet__row">
+          <button type="button" class="vp-button vp-button--secondary vp-button--sm" data-open-cheatsheet>Which pet will I get?</button>
+        </div>
+      </section>
+    </div>
+
+    <div id="cheatsheet" class="overlay overlay--dim" hidden>
+      <section class="vp-sheet" aria-label="Cheat sheet">
+        <header class="vp-sheet__head">
+          <h2 class="vp-sheet__title">Which pet will I get?</h2>
+          <button type="button" class="vp-button vp-button--ghost vp-button--sm" data-close aria-label="Close">✕</button>
+        </header>
+        <p class="vp-sheet__hint">Every egg starts the same. How you care for the child decides which of the three you get.</p>
+        <div class="cheat">
+          <h3>The road</h3>
+          <ul class="help-list">
+            <li><strong>Egg</strong> hatches after 5 minutes.</li>
+            <li><strong>Baby</strong> (the blob) becomes a child 1 hour after hatching, no conditions.</li>
+            <li><strong>Child</strong> (the hooded kid) lasts 2 days, then evolves. This is when care counts.</li>
+          </ul>
+          <h3>The three adults</h3>
+          <table class="cheat-table">
+            <tr><th>Pet</th><th>Care mistakes</th><th>Discipline</th></tr>
+            <tr><td><span class="vp-pill" data-tone="lilac">ninjifu</span> the ninja</td><td>4 or fewer</td><td>40 or more</td></tr>
+            <tr><td><span class="vp-pill" data-tone="pink">lalafu</span> the ghost</td><td>4 or fewer</td><td>under 40</td></tr>
+            <tr><td><span class="vp-pill" data-tone="orange">charamofu</span> the dino</td><td>5 or more</td><td>any</td></tr>
+          </table>
+          <h3>Care mistakes</h3>
+          <p>When the pet calls (the <strong>!</strong> and a beep) it is hungry, sad, sitting next to a poop,
+            sick, sleepy with the lights on, or throwing a tantrum. Leave any call unanswered for 15 minutes and
+            that is one care mistake. They never go away. Ignore five as a child and you get the dino.</p>
+          <h3>Discipline</h3>
+          <p>A <strong>tantrum</strong> is a call with nothing actually wrong: not hungry, not sad, no poop, not
+            sick, not bedtime. Answer it with <strong>Discipline</strong> for +10. You need four of those for the
+            ninja. Disciplining a real call costs 5 happiness, and Medicine when the pet is well costs 5
+            discipline, so check the status page first.</p>
+          <h3>Speeding it up</h3>
+          <p>Add <code>?dev</code> to the address for the dev panel and step the clock <strong>+1 h</strong> at a
+            time, feeding and answering calls as you go. A <strong>+1 day</strong> jump with no care starves the
+            pet.</p>
+        </div>
       </section>
     </div>
 

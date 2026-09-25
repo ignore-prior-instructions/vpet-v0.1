@@ -120,6 +120,21 @@ body {
   .key-hints { display: none; }
 }
 
+.footer-status {
+  border: none;
+  background: none;
+  padding: var(--vp-space-1) var(--vp-space-2);
+  cursor: pointer;
+  font: 600 var(--vp-text-sm) var(--vp-font-display);
+  color: var(--vp-ink-soft);
+}
+.cheat h3 { margin: var(--vp-space-3) 0 var(--vp-space-1); font: 600 15px var(--vp-font-display); }
+.cheat p { margin: 0 0 var(--vp-space-2); line-height: 1.45; }
+.cheat code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--vp-cream); padding: 0 4px; border-radius: 4px; }
+.cheat-table { border-collapse: collapse; width: 100%; }
+.cheat-table th { text-align: left; font: 600 13px var(--vp-font-display); color: var(--vp-ink-soft); padding: 4px 8px 4px 0; }
+.cheat-table td { padding: 6px 8px 6px 0; border-top: 1px solid var(--vp-lilac-soft); }
+
 /* --- overlays: settings, help ---------------------------------------------------------------- */
 .overlay {
   position: fixed;
