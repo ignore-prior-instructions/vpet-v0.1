@@ -6,11 +6,14 @@ const WIDTH = 64;
 const HEIGHT = 32;
 const STRIDE = 8; // bytes per row, ceil(64/8)
 
-export type Theme = "oled" | "lcd";
+export type Theme = "ink" | "oled" | "lcd";
 
-/** Same values as tools/spritekit/spritekit/render.py's STYLES, so a browser screenshot and a
- * `spritekit render --style` preview match. */
+/** `ink` is the shipped look: the design system's `--vp-screen-on`/`--vp-screen-off`
+ * (packages/vpet-ds/src/styles.css), ink pixels on a warm pale panel. `oled`/`lcd` match
+ * tools/spritekit/spritekit/render.py's STYLES so a screenshot and a `spritekit render --style`
+ * preview can be compared; they are dev-panel options. */
 const PALETTES: Record<Theme, { on: [number, number, number]; off: [number, number, number] }> = {
+  ink: { on: [39, 30, 56], off: [253, 241, 234] },
   oled: { on: [159, 232, 255], off: [0, 0, 0] },
   lcd: { on: [26, 36, 24], off: [184, 200, 160] },
 };
