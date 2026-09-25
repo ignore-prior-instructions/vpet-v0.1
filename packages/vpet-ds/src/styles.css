@@ -95,12 +95,12 @@
   justify-content: center;
   gap: var(--vp-space-4);
   padding: var(--vp-space-6) 44px var(--vp-space-5);
-  /* An egg, not a circle: taller than wide, the top a little narrower than the bottom. */
+  /* An egg, not a circle: taller than wide, broad around the screen, tapering toward the buttons. */
   aspect-ratio: 4 / 5;
   box-sizing: border-box;
   background: var(--vp-tone-soft, var(--vp-pink-soft));
   border: var(--vp-line) solid var(--vp-ink);
-  border-radius: 50% 50% 50% 50% / 46% 46% 54% 54%;
+  border-radius: 50% 50% 50% 50% / 54% 54% 46% 46%;
   box-shadow: var(--vp-shadow), var(--vp-shadow-soft);
   font-family: var(--vp-font-display);
   color: var(--vp-ink);
