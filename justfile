@@ -59,8 +59,10 @@ bless:
 
 # docs/TESTING.md "Cross-host parity": every .vlog through the native Cart and through the
 # shipped vpet.wasm on the wasmi interpreter; flags, frames, blobs and Inspect must match.
+# --release: the wasmi interpreter is ~80x slower in a debug build (100 s vs 1.3 s for the
+# golden set); this was most of CI's wall clock. The check compares outputs, not timing.
 parity: wasm
-    cargo run -p vpet-cli --features parity -- parity --wasm target/dist/vpet.wasm tests/golden/*.vlog
+    cargo run --release -p vpet-cli --features parity -- parity --wasm target/dist/vpet.wasm tests/golden/*.vlog
 
 # Typecheck, unit-test (docs/CONTENT.md's grid.ts/grid.py parser-parity test, against
 # tests/fixtures/packed.json -- regenerate with `spritekit dev-fixture` after changing either
