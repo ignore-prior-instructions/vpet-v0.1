@@ -291,9 +291,18 @@ async function main(): Promise<void> {
     // Folded by default on a phone, where the panel would cover the device.
     devPanelEl.hidden = window.matchMedia("(max-width: 480px)").matches;
     devToggleEl.textContent = devPanelEl.hidden ? "Dev ▴" : "Dev ▾";
-    devToggleEl.addEventListener("click", () => {
-      devPanelEl.hidden = !devPanelEl.hidden;
-      devToggleEl.textContent = devPanelEl.hidden ? "Dev ▴" : "Dev ▾";
+    const setDevOpen = (open: boolean) => {
+      devPanelEl.hidden = !open;
+      devToggleEl.textContent = open ? "Dev ▾" : "Dev ▴";
+    };
+    devToggleEl.addEventListener("click", () => setDevOpen(devPanelEl.hidden));
+    // Click anywhere outside the panel folds it, like the Settings sheet. The device's own
+    // A/B/C buttons are the exception: the panel is for watching `inspect` while you play.
+    document.addEventListener("click", (e) => {
+      const target = e.target as Node;
+      if (devPanelEl.hidden || devBoxEl.contains(target)) return;
+      if ((target as Element).closest?.(".vp-shell__buttons")) return;
+      setDevOpen(false);
     });
     devPanel = mountDevPanel(devPanelEl, {
       core,

@@ -23,6 +23,13 @@ async function canvasSnapshot(page: Page): Promise<string> {
   return page.evaluate(() => (document.getElementById("screen") as HTMLCanvasElement).toDataURL());
 }
 
+/** The dev panel folds on any click outside it (e.g. the Settings button), so reopen it
+ * before pressing anything inside, the way a person would. Reading `inspect` needs no reopen:
+ * the table keeps updating while folded. */
+async function openDevPanel(page: Page): Promise<void> {
+  if (await page.locator("#devpanel").isHidden()) await page.locator("#dev-toggle").click();
+}
+
 async function inspectField(page: Page, label: string): Promise<string> {
   return page.locator(`table.inspect tr:has(td:text-is("${label}")) td:nth-child(2)`).innerText();
 }
@@ -38,6 +45,7 @@ async function press(page: Page, key: string): Promise<void> {
 }
 
 async function setDevOffset(page: Page, label: string): Promise<void> {
+  await openDevPanel(page);
   await page.getByRole("button", { name: label, exact: true }).click();
   await page.waitForTimeout(150);
 }
